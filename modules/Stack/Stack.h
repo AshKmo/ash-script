@@ -12,4 +12,8 @@ Stack *Stack_new();
 
 Stack *Stack_push(Stack*, void*);
 
+Stack *Stack_pop(Stack*);
+
+Stack *Stack_delete(Stack*, size_t);
+
 #endif

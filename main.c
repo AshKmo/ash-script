@@ -1,9 +1,17 @@
+/*
+	The ash-script programming language interpreter
+
+	Written by Ashley Kollmorgen, 2025
+	https://ashkmo.dedyn.io
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <float.h>
 
 #include "String.h"
 #include "Stack.h"
@@ -39,14 +47,15 @@ typedef enum {
 	ELEMENT_STRING,
 	ELEMENT_NUMBER,
 
-	ELEMENT_SCOPE_COLLECTION,
 	ELEMENT_SEQUENCE,
+
+	ELEMENT_SCOPE_COLLECTION,
+	ELEMENT_SCOPE,
 } ElementType;
 
 // type used to store any value that can be encountered by the language, as well as its type and garbage-collection status
 typedef struct {
 	ElementType type;
-	bool visited;
 	bool gc_checked;
 	void *value;
 } Element;
@@ -55,6 +64,7 @@ typedef struct {
 Element *Element_new(ElementType type, void *value) {
 	Element *new_element = malloc(sizeof(Element));
 	new_element->type = type;
+	new_element->gc_checked = false;
 	new_element->value = value;
 	return new_element;
 }
@@ -104,6 +114,278 @@ Operation *Operation_new(OperationType type, Element *a, Element *b) {
 	new_operation->a = a;
 	new_operation->b = b;
 	return new_operation;
+}
+
+// type used to represent an association between a key and a value
+typedef struct {
+	Element *key;
+	Element *value;
+} Map;
+
+// type used to represent a scope of variables or an object with properties depending on usage
+typedef struct {
+	size_t length;
+	Map maps[];
+} Scope;
+
+Scope *Scope_new() {
+	Scope *new_scope = malloc(sizeof(Scope));
+	new_scope->length = 0;
+	return new_scope;
+}
+
+// forward declaration of Scope_get() for mutual recursion
+Element *Scope_get(Scope*, Element*);
+
+// function to compare two Elements
+bool Element_compare(Element *a, Element *b) {
+	// handle the case where at least one of the elements is invalid
+	if (a == NULL || b == NULL) {
+		return false;
+	}
+
+	// if the same Element is being passed to both arguments, then they are equal
+	if (a == b) {
+		return true;
+	}
+
+	// elements must be of the same type to be equal
+	if (a->type != b->type) {
+		return false;
+	}
+
+	switch (a->type) {
+		case ELEMENT_NULL:
+			// there is only one value that null Elements can be, and we already know that the type is the same, so these elements must be equal
+			return true;
+
+		case ELEMENT_VARIABLE:
+		case ELEMENT_STRING:
+			// string-like values can be compared by comparing their lengths and each character in them
+			{
+				String *string_a = a->value;
+				String *string_b = b->value;
+
+				// if the lengths are different, the strings are different
+				if (string_a->length != string_b->length) {
+					return false;
+				}
+
+				// iterate through each character in both strings and if any character differs, then the strings differ
+				for (size_t i = 0; i < string_a->length; i++) {
+					if (string_a->content[i] != string_b->content[i]) {
+						return false;
+					}
+				}
+
+				// if each corresponding character is equal and the lengths are equal, the string must be equal
+				return true;
+			};
+			break;
+
+		case ELEMENT_NUMBER:
+			{
+				Number *number_a = a->value;
+				Number *number_b = b->value;
+
+				// each number can be either a double or long, so each combination of doubles and longs must be considered
+				if (number_a->is_double) {
+					if (number_b->is_double) {
+						return number_a->value_double == number_b->value_double;
+					} else {
+						return number_a->value_double == number_b->value_long;
+					}
+				} else {
+					if (number_b->is_double) {
+						return number_a->value_long == number_b->value_double;
+					} else {
+						return number_a->value_long == number_b->value_long;
+					}
+				}
+			};
+			break;
+
+		case ELEMENT_SCOPE:
+			{
+				Scope *scope_a = a->value;
+				Scope *scope_b = b->value;
+
+				// scopes with differing numbers of mappings must not be equal
+				if (scope_a->length != scope_b->length) {
+					return false;
+				}
+
+				// the scopes are not equal if any of the mappings differ
+				for (size_t i = 0; i < scope_a->length; i++) {
+					if (!Element_compare(Scope_get(scope_b, scope_a->maps[i].key), scope_a->maps[i].value)) {
+						return false;
+					}
+				}
+
+				// if the lengths are the same and the mappings are the same, the scopes must be equal
+				return true;
+			};
+			break;
+	}
+
+	// Elements that for whatever reason cannot be compared are considered non-equal
+	return false;
+}
+
+// function to edit the mapping within a Scope for a certain key, creating one if it doesn't exist yet
+Scope *Scope_set(Scope *scope, Element *key, Element *value) {
+	// iterate through the scope and update the value of a matching Map if one is found
+	for (size_t i = 0; i < scope->length; i++) {
+		if (Element_compare(scope->maps[i].key, key)) {
+			scope->maps[i].value = value;
+			return scope;
+		}
+	}
+
+	// if no matching Map is found, more memory must be allocated for an additional Map
+	scope = realloc(scope, sizeof(Scope) + (scope->length + 1) * sizeof(Map));
+
+	// configure the properties of the new Map so that it maps the key to the new value
+	scope->maps[scope->length].key = key;
+	scope->maps[scope->length].value = value;
+
+	scope->length++;
+
+	return scope;
+}
+
+// function to get a value mapped to a certain key in a Scope
+Element *Scope_get(Scope *scope, Element *key) {
+	// search through all mappings in the Scope and return the value of one if the keys match
+	for (size_t i = 0; i < scope->length; i++) {
+		if (Element_compare(scope->maps[i].key, key)) {
+			return scope->maps[i].value;
+		}
+	}
+
+	// otherwise, there is no matching element, so return NULL
+	return NULL;
+}
+
+// function to determine whether or not a mapping is present within a Scope with a matching key
+bool Scope_has(Scope *scope, Element *key) {
+	// search through all mappings in the Scope and return true if one with a matching key is present
+	for (size_t i = 0; i < scope->length; i++) {
+		if (Element_compare(scope->maps[i].key, key)) {
+			return true;
+		}
+	}
+
+	// no matches were found
+	return false;
+}
+
+// function to delete a mapping in a Scope
+bool Scope_delete(Scope *scope, Element *key) {
+	bool shift_back = false;
+
+	// iterate through the Scope until the matching mapping is found
+	// after that, shift every mapping back one place
+	for (size_t i = 0; i < scope->length; i++) {
+		if (shift_back) {
+			scope->maps[i - 1].key = scope->maps[i].key;
+			scope->maps[i - 1].value = scope->maps[i].value;
+		} else if (Element_compare(scope->maps[i].key, key)) {
+			shift_back = true;
+		}
+	}
+
+	// if no matching key was ever found, do nothing
+	if (!shift_back) {
+		return false;
+	}
+
+	// reduce the size of the scope by one mapping's worth
+	scope->length--;
+	scope = realloc(scope, sizeof(Scope) + scope->length * sizeof(Map));
+
+	return scope;
+}
+
+// function to print Elements to the console
+void Element_print(Element *element, int indentation, bool literal) {
+	switch (element->type) {
+		case ELEMENT_NULL:
+			putchar('?');
+			break;
+
+		case ELEMENT_NUMBER:
+			{
+				Number *number = element->value;
+
+				if (number->is_double) {
+					// if the number is a floating-point value, print it to the maximum number of decimal places necessary to represent it exactly
+					printf("%.*g", DBL_DECIMAL_DIG, number->value_double);
+				} else {
+					// if the number is a long integer, just print it
+					printf("%d", number->value_long);
+				}
+			};
+			break;
+
+		case ELEMENT_VARIABLE:
+			String_print(element->value);
+			break;
+
+		case ELEMENT_STRING:
+			if (literal) {
+			// if we are supposed to print the Element as a literal element, print it as a correctly-formatted ash-script string
+
+				String *string = element->value;
+
+				putchar('"');
+
+				for (size_t i = 0; i < string->length; i++) {
+					if (string->content[i] == '"') {
+						putchar('\\');
+					}
+
+					putchar(string->content[i]);
+				}
+
+				putchar('"');
+			} else {
+				// otherwise, just dump the contents to the console
+				String_print(element->value);
+			}
+			break;
+
+		case ELEMENT_SCOPE:
+			{
+				Scope *scope = element->value;
+
+				putchar('{');
+				putchar('\n');
+
+				for (size_t i = 0; i < scope->length; i++) {
+					for (int i = 0; i < indentation + 1; i++) {
+						putchar('\t');
+					}
+					fputs("let ", stdout);
+					Element_print(scope->maps[i].key, indentation + 1, false);
+					putchar(' ');
+					Element_print(scope->maps[i].value, indentation + 1, false);
+					putchar(';');
+					putchar('\n');
+				}
+
+				for (int i = 0; i < indentation; i++) {
+					putchar('\t');
+				}
+
+				putchar('}');
+			};
+			break;
+
+		default:
+			// if the Element does not have its type listed above, print a placeholder indicating its type
+			printf("[WEIRD %d]", element->type);
+	}
 }
 
 // function to convert a hex digit into the number it represents (returned as a char)
@@ -189,7 +471,7 @@ Stack *tokenise(String *script, Stack **heap) {
 				if (escaped) {
 					switch (c) {
 						case 'n':
-						// '\n' evaluates to a newline
+							// '\n' evaluates to a newline
 							c = '\n';
 							break;
 						case 'r':
@@ -330,6 +612,7 @@ Stack *tokenise(String *script, Stack **heap) {
 				case ELEMENT_STRING:
 					// variables and strings contain their own characters
 					new_token->value = current_value;
+					break;
 
 				case ELEMENT_BRACKET:
 				case ELEMENT_BRACE:
@@ -341,6 +624,7 @@ Stack *tokenise(String *script, Stack **heap) {
 						// however, since bracket and brace elements are only either opening or closing, I figured it would be slightly more efficient to store this within the pointer value itself, instead of making another object on the heap
 						new_token->value = (void*)(uintptr_t)(bracket_character == '}' || bracket_character == ')');
 					};
+					break;
 
 				case ELEMENT_OPERATION:
 					// operators need to become operation elements
@@ -398,7 +682,7 @@ Stack *tokenise(String *script, Stack **heap) {
 							operation->type = OPERATION_APPLICATION_INFIX;
 						}
 
-						// set the value of the token to its new operation element
+						// set the value of the token to its new Operation object
 						new_token->value = operation;
 
 						// we're done with the value string now
@@ -423,6 +707,9 @@ Stack *tokenise(String *script, Stack **heap) {
 						} else {
 							number->value_long = atoi(number_string);
 						}
+
+						// set the value of the token to its new Number object
+						new_token->value = number;
 
 						// we're done with the value string now
 						free(current_value);
@@ -616,15 +903,186 @@ Element *construct_sequence(Stack *tokens, size_t *i, Stack **heap) {
 
 // function to construct the abstract syntax tree from the token list
 Element *construct_tree(Stack *tokens, Stack **heap) {
-	return construct_sequence(tokens, 0, heap);
+	size_t i = 0;
+	return construct_sequence(tokens, &i, heap);
 }
 
+// function to recursively mark items as non-garbage
+void garbage_check(Element *element) {
+	// stop the recursion if a valid element isn't provided or if the element has been visited already
+	if (element == NULL || element->gc_checked) {
+		return;
+	}
+
+	// mark the element as non-garbabge
+	element->gc_checked = true;
+
+	switch (element->type) {
+		case ELEMENT_OPERATION:
+			{
+				Operation *operation = element->value;
+				garbage_check(operation->a);
+				garbage_check(operation->b);
+			};
+			break;
+		case ELEMENT_SEQUENCE:
+			{
+				Stack *sequence = element->value;
+
+				// iterate through all statements in the sequence
+				for (size_t y = 0; y < sequence->length; y++) {
+					Stack *statement = sequence->content[y];
+
+					// iterate through all Elements in the statement
+					for (size_t x = 0; x < statement->length; x++) {
+						garbage_check(statement->content[x]);
+					}
+				}
+			};
+			break;
+	}
+}
+
+// function to free an element and its contents
+void Element_nuke(Element *element) {
+	switch (element->type) {
+		case ELEMENT_VARIABLE:
+		case ELEMENT_NUMBER:
+		case ELEMENT_STRING:
+		case ELEMENT_OPERATION:
+		case ELEMENT_SCOPE_COLLECTION:
+		case ELEMENT_SCOPE:
+			free(element->value);
+			break;
+		case ELEMENT_SEQUENCE:
+			{
+				Stack *sequence = element->value;
+
+				// free all the statements in the sequence
+				for (size_t y = 0; y < sequence->length; y++) {
+					free(sequence->content[y]);
+				}
+
+				free(sequence);
+			};
+			break;
+	}
+
+	free(element);
+}
+
+// function to clean out any unreferenced garbage that has been building up on the heap tracker
 void garbage_collect(Element *result, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
-	// TODO
+	if (result != NULL) {
+		// mark any single result value as non-garbage
+		garbage_check(result);
+	}
+
+	if (ast_root != NULL) {
+		// mark the abstract syntax tree as non-garbage
+		garbage_check(ast_root);
+	}
+
+	if (scopes_stack != NULL) {
+		// mark all the items in scopes as non-garbage
+		for (size_t i = 0; i < (*scopes_stack)->length; i++) {
+			garbage_check((*scopes_stack)->content[i]);
+		}
+	}
+
+	if (call_stack != NULL) {
+		// mark all the items in the call stack as non-garbage
+		for (size_t i = 0; i < (*call_stack)->length; i++) {
+			garbage_check((*call_stack)->content[i]);
+		}
+	}
+
+	// iterate through all the Elements on the heap tracker
+	for (size_t i = 0; i < (*heap)->length; i++) {
+		Element *element = (*heap)->content[i];
+
+		if (element->gc_checked) {
+			// re-mark non-garbage as potential garbage for next time
+			element->gc_checked = false;
+		} else {
+			// if any Element is found that has not been marked as non-garbage, remove it from the stack and free it
+			*heap = Stack_delete(*heap, i);
+			Element_nuke(element);
+			i--;
+		}
+	}
 }
 
-Element *evaluate(Element *expression, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
-	// TODO
+// function to spit out an error and kill the program
+void whoops(char *reason) {
+	fputs("ERROR: ", stderr);
+	fputs(reason, stderr);
+	fputc('\n', stderr);
+	exit(1);
+}
+
+// function to evaluate a branch of the abstract syntax tree
+Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
+	Element *scopes = (*scopes_stack)->content[(*scopes_stack)->length - 1];
+
+	switch (branch->type) {
+		case ELEMENT_SEQUENCE:
+			{
+				// each sequence should have its own local scope
+				Element *scope = make(ELEMENT_SCOPE, Scope_new(), heap);
+				scopes->value = Stack_push(scopes->value, scope);
+
+				Stack *sequence = branch->value;
+
+				// iterate through each statement in the sequence
+				for (size_t statement_index = 0; statement_index < sequence->length; statement_index++) {
+					Stack *statement = sequence->content[statement_index];
+
+					// get the command name, which is the first element in the statement
+					Element *command = statement->content[0];
+
+					// all command names must be plain old words
+					if (command->type != ELEMENT_VARIABLE) {
+						whoops("command name must not be a value");
+					}
+
+					// boolean to indicate whether or not a matching instruction was found
+					bool handled = false;
+
+					// the "do" command just evaluates all its arguments in sequence from left to right
+					if (!handled && String_is(command->value, "do") && (handled = true)) {
+						// iterate through each argument and evaluate it
+						for (size_t i = 1; i < statement->length; i++) {
+							evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap);
+						}
+					}
+
+					// the "print" command evaluates all its arguments and prints them to the console from left to right
+					if (!handled && String_is(command->value, "print") && (handled = true)) {
+						for (size_t i = 1; i < statement->length; i++) {
+							Element_print(evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap), 0, false);
+						}
+					}
+
+					// if no matching command was found for this statement, it must be an invalid command
+					if (!handled) {
+						whoops("command not recognised");
+					}
+
+					// collect any garbage that may have accumulated over the course of the execution of this statement
+					garbage_collect(NULL, ast_root, call_stack, scopes_stack, heap);
+				}
+
+				// remove the now-redundant scope from the scope stack
+				scopes->value = Stack_pop(scopes->value);
+
+				// if no value was returned by the sequence, return its scope
+				return scope;
+			};
+			break;
+		default:
+			return branch;
+	}
 }
 
 // function to execute a script string
@@ -681,7 +1139,7 @@ String *read_file(char *path) {
 	String *file_content = String_new(file_size);
 
 	// iterate through each character in the file and shove it in the string
-	for (size_t i = 0; i < file_size; i++) {
+	for (long i = 0; i < file_size; i++) {
 		file_content->content[i] = fgetc(file_pointer);
 	}
 

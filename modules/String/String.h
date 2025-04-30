@@ -16,4 +16,6 @@ bool String_has_char(String*, char);
 
 String *String_append_char(String*, char);
 
+void String_print(String*);
+
 #endif

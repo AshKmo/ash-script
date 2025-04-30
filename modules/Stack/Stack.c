@@ -15,6 +15,7 @@ Stack *Stack_new() {
 Stack *Stack_push(Stack *stack, void *new_element) {
 	stack = realloc(stack, sizeof(Stack) + (stack->length + 1) * sizeof(void*));
 	stack->content[stack->length] = new_element;
+	stack->length++;
 	return stack;
 }
 
@@ -27,18 +28,9 @@ Stack *Stack_pop(Stack *stack) {
 
 // function to delete an item from a stack at an arbitrary position
 Stack *Stack_delete(Stack *stack, size_t index) {
-	bool shifting = false;
-
-	for (size_t i = 0; i < stack->length; i++) {
-		// all items above the deleted item will be shifted down
-		if (shifting) {
-			stack->content[i - 1] = stack->content[i];
-		}
-
-		// once the doomed item is reached, begin shifting items down
-		if (i == index) {
-			shifting = true;
-		}
+	// shift every item after doomed item back one position
+	for (size_t i = index + 1; i < stack->length; i++) {
+		stack->content[i - 1] = stack->content[i];
 	}
 
 	// change the length of the stack to reflect the updated contents

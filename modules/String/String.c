@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -6,7 +7,7 @@
 
 // function to allocate memory for a new String
 String *String_new(size_t length) {
-	String *new_string = malloc(sizeof(String));
+	String *new_string = malloc(sizeof(String) + length * sizeof(char));
 	new_string->length = length;
 	return new_string;
 }
@@ -47,10 +48,17 @@ bool String_has_char(String* string, char character) {
 	return false;
 }
 
-// function to append a character to a string by reallocating the memory and assigning the character to the last byte
+// function to append a character to a String by reallocating the memory and assigning the character to the last byte
 String *String_append_char(String *string, char character) {
 	string = realloc(string, sizeof(String) + (string->length + 1) * sizeof(char));
 	string->content[string->length] = character;
 	string->length++;
 	return string;
+}
+
+// function to print a String to the console
+void String_print(String *string) {
+	for (size_t i = 0; i < string->length; i++) {
+		putchar(string->content[i]);
+	}
 }
