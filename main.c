@@ -726,7 +726,7 @@ Stack *tokenise(String *script, Stack **heap) {
 							c = '\t';
 							break;
 						case 'x':
-							// '\xGG' evaluates to a character specified by the hexadecimal number 'GG', where 'G' represents any hexadecimal digit
+							// '\xHH' evaluates to the character with hex value HH
 
 							// the first digit represents the 16s place and the second represents the 1s place
 							c = 16 * hex_char(script->content[i + 1]) + hex_char(script->content[i + 2]);

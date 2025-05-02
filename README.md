@@ -8,3 +8,93 @@ Clone this repository, then make a new directory called 'bin' next to this file.
 
 ## Running
 Run `./bin/ash-script <script-file>` to execute any valid ash-script file. For instance, run `./bin/ash-script examples/pi.txt` to execute the Pi calculation example.
+
+## Usage
+
+### Data types
+ash-script supports a number of different data types. The complete list of all data types are as follows:
+
+#### Null (`?`)
+Represents a null value.
+
+#### Number (`4`, `-3`, `3.14`, `-2.7`)
+Represents either an integer or a floating-point number. A leading '-' signifies a negative number (in this case, the '-' is not an operator).
+
+#### String (`"Hello, world!"`)
+Represents a series of characters of a certain length. In declaration, the following escape sequences can be used:
+- `\n`: newline
+- `\r`: carriage return
+- `\t`: tab
+- `\xHH`: the character with hex value 'HH'
+
+#### Scope (`{let x 3; let "Bob" "a person"; let 0 "the first value";}`)
+The current scope of a sequence becomes, by default, the result of the evaluation of said sequence, allowing for manipulation of scopes as objects. This is ash-script's version of dictionaries, arrays and objects.
+
+#### Closure (`x => x * 3`, `? => {print "You called me\n";}`, `x => y => x * y`)
+Represents a function that accepts a single argument and that contains the scopes enclosing it. Behaves very similarly to first-class functions in other languages, and is created in a very similar fashion to JavaScript's arrow functions.
+
+### Sequences
+Every ash-script script is a sequence of statements that are executed in order. Each statement consists of a command name and a varying number of arguments, followed by a terminating semicolon:
+
+```
+print "Hello, world!\n";
+```
+
+In this instance, `print` is the command name and `"Hello, world!\n"` is a string that is treated as an argument when the statement is executed.
+
+The complete list of commands are as follows:
+
+#### `do`
+Evaluates all arguments passed to it, e.g.
+
+```
+do {print "Hello, ";} {print "world!\n";};
+```
+
+#### `return`
+Accepts one argument, which it evaluates immediately. Ceases execution of the current sequence and causes it to evaluate to the evaluation of its argument.
+
+#### `print`
+Prints to the console a text representation of the evaluations of each of its arguments, from left to right.
+
+#### `whoops`
+Identical to `print`, but also causes the program to immediately crash and cease execution
+
+#### `input`
+Accepts a single argument and sets the variable named by said argument to a string containing the users input, which it receives from the console.
+
+#### `readfile`
+Accepts two arguments and sets the variable named by the first argument to the contents of a file, the location of which is described by the evaluation of the second argument, which must be a string.
+
+#### `writefile`
+Accepts three arguments and sets the variable named by the first argument to a number 1 if the file at the location described by the evaluation of the second argument (which must be a string) has been successfully updated or created with the contents specified by the evaluation of the third argument, otherwise a number 0.
+
+#### `if`
+Accepts any number of arguments, and iterates through each of them two-by-two. For each pair, the first argument in the pair is evaluated and, if the result is a truthy value, the second argument is evaluated and execution of the statement then ceases. A trailing argument, if specified, is evaluated if this never happens. For example:
+
+```
+if (x == 3) {
+    print "x is 3\n";
+} (x == 4) {
+    print "x is 4\n";
+} (x == 5) {
+    print "x is 5\n";
+} {
+    print "x is neither 3, 4, nor 5\n";
+}
+```
+
+#### `while`
+Accepts two arguments, the first of which is evaluated and, if the result is a truthy value, the second is also evaluated. This is then repeated until the first argument evaluates to a falsy value.
+
+#### `let`
+Accepts two arguments, the first of which names a variable that is set within the current scope to the value specified by the evaluation of the second argument.
+
+#### `set`
+Accepts two arguments, the first of which names a variable within an enclosing scope that is set to the value specified by the evaluation of the second argument. The scope is chosen by scanning each scope from nearest to furthest until a matching variable is found. If no scope is found, the variable is created within the local scope.
+
+#### `mut`
+Accepts three arguments, the first of which must evaluate to a Scope object that will then be updated such that the key described by the evaluation of the second argument will map to the evaluation of the third argument.
+
+#### `edit`
+Accepts three arguments, the first of which must evaluate to a Scope object that will then be updated such that the key described by the second argument (without evaluation) will map to the evaluation of the third argument.
