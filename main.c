@@ -1,10 +1,8 @@
-/*
-	The ash-script programming language interpreter
+// The ash-script programming language interpreter
+// Written by Ashley Kollmorgen, 2025
+// https://ashkmo.dedyn.io
 
-	Written by Ashley Kollmorgen, 2025
-	https://ashkmo.dedyn.io
-*/
-
+// import the necessary built-in libraries
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -12,9 +10,19 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <float.h>
+#include <math.h>
 
+// import additional modules
 #include "String.h"
 #include "Stack.h"
+
+// function to spit out an error and kill the program if/when necessary
+void whoops(char *reason) {
+	fputs("ERROR: ", stderr);
+	fputs(reason, stderr);
+	fputc('\n', stderr);
+	exit(1);
+}
 
 // numeric type that can represent either long integer or double-precision floating-point values
 typedef struct {
@@ -51,6 +59,7 @@ typedef enum {
 
 	ELEMENT_SCOPE_COLLECTION,
 	ELEMENT_SCOPE,
+	ELEMENT_CLOSURE,
 } ElementType;
 
 // type used to store any value that can be encountered by the language, as well as its type and garbage-collection status
@@ -72,7 +81,6 @@ Element *Element_new(ElementType type, void *value) {
 // enumeration type used to represent the type of an Operation
 typedef enum {
 	OPERATION_APPLICATION,
-	OPERATION_APPLICATION_INFIX,
 	OPERATION_ACCESS,
 	OPERATION_POW,
 	OPERATION_MULTIPLICATION,
@@ -84,7 +92,6 @@ typedef enum {
 	OPERATION_SHIFT_RIGHT,
 	OPERATION_SUBL,
 	OPERATION_SUBG,
-	OPERATION_CONCATENATION,
 	OPERATION_LT,
 	OPERATION_GT,
 	OPERATION_LTE,
@@ -98,7 +105,7 @@ typedef enum {
 } OperationType;
 
 // array storing the precedence value of each operator
-const int OPERATION_PRECEDENCE[] = {0, 1, 1, 2, 3, 3, 3, 4, 4, 5, 5, 6, 6, 7, 8, 8, 8, 8, 9, 9, 10, 11, 12, 13};
+const int OPERATOR_PRECEDENCE[] = {0, 0, 1, 2, 3, 3, 3, 4, 4, 5, 5, 6, 6, 7, 8, 8, 8, 8, 9, 9, 10, 11, 12, 13};
 
 // type used to represent an operation that is to be performed on two values
 typedef struct {
@@ -116,6 +123,123 @@ Operation *Operation_new(OperationType type, Element *a, Element *b) {
 	return new_operation;
 }
 
+// function to perform operations on numbers
+Number* Number_operate(OperationType operation_type, Number *number_a, Number *number_b) {
+	Number *result = Number_new();
+
+	// the result should usually be a floating-point value if either operand is one already
+	result->is_double = number_a->is_double || number_b->is_double;
+
+
+	// most of these operations follow the same format:
+	// if one of the operands is floating-point, then perform the operation using the appropriate property for each number (value_double or value_long) depending on the type of number it is
+	// otherwise, just perform the operation using value_long for both numbers
+	switch (operation_type) {
+		case OPERATION_ADDITION:
+			if (result->is_double) {
+				result->value_double =
+					(number_a->is_double ? number_a->value_double : number_a->value_long) +
+					(number_b->is_double ? number_b->value_double : number_b->value_long);
+			} else {
+				result->value_long = number_a->value_long + number_b->value_long;
+			}
+			break;
+		case OPERATION_SUBTRACTION:
+			if (result->is_double) {
+				result->value_double =
+					(number_a->is_double ? number_a->value_double : number_a->value_long) -
+					(number_b->is_double ? number_b->value_double : number_b->value_long);
+			} else {
+				result->value_long = number_a->value_long - number_b->value_long;
+			}
+			break;
+		case OPERATION_MULTIPLICATION:
+			if (result->is_double) {
+				result->value_double =
+					(number_a->is_double ? number_a->value_double : number_a->value_long) *
+					(number_b->is_double ? number_b->value_double : number_b->value_long);
+			} else {
+				result->value_long = number_a->value_long * number_b->value_long;
+			}
+			break;
+		case OPERATION_DIVISION:
+			// if the denominumber_ator is zero or there is no clean integer division, make the result floating-point
+			if (number_b->value_long == 0 || number_a->value_long % number_b->value_long != 0) {
+				result->is_double = true;
+			}
+
+			if (result->is_double) {
+				// if the result needs to be floating-point, convert the operands to floating-point
+				double da = number_a->is_double ? number_a->value_double : number_a->value_long;
+				double db = number_b->is_double ? number_b->value_double : number_b->value_long;
+
+				// if the denominumber_ator is zero, use the appropriate infinity value
+				// otherwise, perform regular floating-point division
+				result->value_double = db == 0 ? (da == 0 ? NAN : da > 0 ? INFINITY : -INFINITY) : da / db;
+			} else {
+				// if the two values are normal integers and the denominumber_ator isn't zero, just use integer division
+				result->value_long = number_a->value_long / number_b->value_long;
+			}
+			break;
+
+		case OPERATION_REMAINDER:
+			// the remainder operator only applies to integers
+			if (result->is_double) {
+				whoops("cannot apply remainder operation to floating-point values");
+			} else {
+				result->value_long = number_a->value_long % number_b->value_long;
+			}
+			break;
+
+		case OPERATION_POW:
+			// the pow() function only works on doubles and only returns a double, so the result is a double
+			result->is_double = true;
+
+			// convert each operand to a double
+			double da = number_a->is_double ? number_a->value_double : number_a->value_long;
+			double db = number_b->is_double ? number_b->value_double : number_b->value_long;
+
+			result->value_double = pow(da, db);
+			break;
+
+		case OPERATION_LT:
+		case OPERATION_GT:
+			// switch the operands around for the other operator so we don't have to write the same logic twice
+			if (operation_type == OPERATION_GT) {
+				Number *temp = number_a;
+				number_a = number_b;
+				number_b = temp;
+			}
+
+			// the result will only be 1/0 for true/false so it should be an integer
+			result->is_double = false;
+
+			result->value_long =
+				(number_a->is_double ? number_a->value_double : number_a->value_long) <
+				(number_b->is_double ? number_b->value_double : number_b->value_long);
+			break;
+
+		case OPERATION_LTE:
+		case OPERATION_GTE:
+			// switch the operands around for the other operator so we don't have to write the same logic twice
+			if (operation_type == OPERATION_GTE) {
+				Number *temp = number_a;
+				number_a = number_b;
+				number_b = temp;
+			}
+
+			// the result will only be 1/0 for true/false so it should be an integer
+			result->is_double = false;
+
+			result->value_long =
+				(number_a->is_double ? number_a->value_double : number_a->value_long) <=
+				(number_b->is_double ? number_b->value_double : number_b->value_long);
+			break;
+	}
+
+	return result;
+}
+
 // type used to represent an association between a key and a value
 typedef struct {
 	Element *key;
@@ -128,6 +252,7 @@ typedef struct {
 	Map maps[];
 } Scope;
 
+// function to allocate memory for a new Scope object
 Scope *Scope_new() {
 	Scope *new_scope = malloc(sizeof(Scope));
 	new_scope->length = 0;
@@ -307,8 +432,13 @@ bool Scope_delete(Scope *scope, Element *key) {
 	return scope;
 }
 
-// function to print Elements to the console
+// function to print Elements to the console based on their type
 void Element_print(Element *element, int indentation, bool literal) {
+	// make sure that the Element actually exists first
+	if (element == NULL) {
+		return;
+	}
+
 	switch (element->type) {
 		case ELEMENT_NULL:
 			putchar('?');
@@ -334,13 +464,14 @@ void Element_print(Element *element, int indentation, bool literal) {
 
 		case ELEMENT_STRING:
 			if (literal) {
-			// if we are supposed to print the Element as a literal element, print it as a correctly-formatted ash-script string
+				// if we are supposed to print the Element as a literal element, print it as a correctly-formatted ash-script string
 
 				String *string = element->value;
 
 				putchar('"');
 
 				for (size_t i = 0; i < string->length; i++) {
+					// when a quote is found, it should be escaped by a backslash
 					if (string->content[i] == '"') {
 						putchar('\\');
 					}
@@ -362,10 +493,14 @@ void Element_print(Element *element, int indentation, bool literal) {
 				putchar('{');
 				putchar('\n');
 
+				// iterate through all the mappings in the Scope
 				for (size_t i = 0; i < scope->length; i++) {
+					// correctly indent each line of the Scope
 					for (int i = 0; i < indentation + 1; i++) {
 						putchar('\t');
 					}
+
+					// print a 'let' statement defining each key and value in the scope
 					fputs("let ", stdout);
 					Element_print(scope->maps[i].key, indentation + 1, false);
 					putchar(' ');
@@ -374,6 +509,7 @@ void Element_print(Element *element, int indentation, bool literal) {
 					putchar('\n');
 				}
 
+				// correctly indent the last line of the Scope
 				for (int i = 0; i < indentation; i++) {
 					putchar('\t');
 				}
@@ -382,10 +518,73 @@ void Element_print(Element *element, int indentation, bool literal) {
 			};
 			break;
 
+		case ELEMENT_CLOSURE:
+			// Closures can't easily be represented due to their Scope-containing nature, so we're just going to have to print a placeholder
+			fputs("[=>]", stdout);
+			break;
+
 		default:
 			// if the Element does not have its type listed above, print a placeholder indicating its type
 			printf("[WEIRD %d]", element->type);
 	}
+}
+
+// function to determine whether or not an Element has a truthy value
+bool Element_is_truthy(Element *element) {
+	switch (element->type) {
+		case ELEMENT_NULL:
+			// Null Elements are never truthy
+			return false;
+
+		case ELEMENT_NUMBER:
+			// Number Elements are truthy if they do not equal 0 or NAN
+			{
+				Number *number = element->value;
+
+				if (number->is_double) {
+					return number->value_double != 0 && number->value_double != NAN;
+				} else {
+					return number->value_long != 0;
+				}
+			};
+			break;
+		case ELEMENT_STRING:
+			// String Elements are truthy if they are not empty
+			{
+				String *string = element->value;
+
+				return string->length != 0;
+			};
+			break;
+		case ELEMENT_SCOPE:
+			// Scope Elements are truthy if they contain at least one mapping
+			{
+				Scope *scope = element->value;
+
+				return scope->length != 0;
+			};
+			break;
+	}
+
+	// all Elements of any other type are considered truthy
+	return true;
+}
+
+// type used to represent a Closure, which is a function that stores within itself the Scopes surrounding it
+// this means that variables in the Scopes in which the Closure was created can be accessed by the Closure when it is called
+typedef struct {
+	Element *expression;
+	Element *variable;
+	Element *scopes;
+} Closure;
+
+// function to allocate memory for a new Closure object
+Closure *Closure_new(Element *expression, Element *variable, Element *scopes) {
+	Closure *new_closure = malloc(sizeof(Closure));
+	new_closure->expression = expression;
+	new_closure->variable = variable;
+	new_closure->scopes = scopes;
+	return new_closure;
 }
 
 // function to convert a hex digit into the number it represents (returned as a char)
@@ -491,6 +690,8 @@ Stack *tokenise(String *script, Stack **heap) {
 							i += 2;
 							break;
 					}
+				} else if (c == '"') {
+					new_type = ELEMENT_NOTHING;
 				}
 			}
 		} else {
@@ -623,6 +824,9 @@ Stack *tokenise(String *script, Stack **heap) {
 						// usually, Element structs use their 'value' pointer to point to the value of the element
 						// however, since bracket and brace elements are only either opening or closing, I figured it would be slightly more efficient to store this within the pointer value itself, instead of making another object on the heap
 						new_token->value = (void*)(uintptr_t)(bracket_character == '}' || bracket_character == ')');
+
+						// brackets and braces don't need to store their characters
+						free(current_value);
 					};
 					break;
 
@@ -633,7 +837,7 @@ Stack *tokenise(String *script, Stack **heap) {
 						Operation *operation = Operation_new(OPERATION_APPLICATION, NULL, NULL);
 
 						// match the new operator to its operation
-						// I apologise for this monstrosity but it's necessary
+						// I apologise for this ugly monstrosity but it's necessary because C can't switch-case with strings
 						if (String_is(current_value, "+")) {
 							operation->type = OPERATION_ADDITION;
 						} else if (String_is(current_value, "-")) {
@@ -646,8 +850,6 @@ Stack *tokenise(String *script, Stack **heap) {
 							operation->type = OPERATION_REMAINDER;
 						} else if (String_is(current_value, "==")) {
 							operation->type = OPERATION_EQUALITY;
-						} else if (String_is(current_value, "..")) {
-							operation->type = OPERATION_CONCATENATION;
 						} else if (String_is(current_value, "<")) {
 							operation->type = OPERATION_LT;
 						} else if (String_is(current_value, ">")) {
@@ -678,8 +880,6 @@ Stack *tokenise(String *script, Stack **heap) {
 							operation->type = OPERATION_ACCESS;
 						} else if (String_is(current_value, "=>")) {
 							operation->type = OPERATION_CLOSURE;
-						} else if (String_is(current_value, "$")) {
-							operation->type = OPERATION_APPLICATION_INFIX;
 						}
 
 						// set the value of the token to its new Operation object
@@ -725,13 +925,15 @@ Stack *tokenise(String *script, Stack **heap) {
 			current_value = String_new(0);
 		}
 
+		// we no longer need to check for differences in token types, so update the current type
 		current_type = new_type;
 
-		// if the current character is not whitespace and is not the quotes at the ends of a string, add it to the current token
+		// if the current character is not whitespace and we are either fully inside or fully outside a string, add the character to the current token
 		if (current_type != ELEMENT_NOTHING && (in_string || current_type != ELEMENT_STRING)) {
 			current_value = String_append_char(current_value, c);
 		}
 
+		// if we've just entered a String, set the in_string boolean to reflect that
 		in_string = current_type == ELEMENT_STRING;
 
 		// treat the next character as having not been escaped, since we already dealt with the escape sequence
@@ -755,35 +957,55 @@ Element *operatify(Stack *expression, size_t start, size_t end, Stack **heap) {
 
 	Operation *final_operation = NULL;
 
-	// iterate through all the possible operators and find the one with the worst (highest) precedence value
-	int current_precedence = 0;
 	size_t operation_location = 0;
+
+	// iterate through all the possible operators and find the one with the worst (highest) precedence value
+	int precedence_record = 1;
 	for (size_t i = start; i < end; i++) {
 		Element *current_token = expression->content[i];
 
 		if (current_token->type == ELEMENT_OPERATION) {
 			Operation *current_operation = current_token->value;
 
-			// only deal with operators that we haven't handled yet and that have a worse or equal precedence value to the last
-			if (current_operation->a == NULL && OPERATION_PRECEDENCE[current_operation->type] >= current_precedence) {
+			// the operator with the worst precedence and that occurs last should be selected first
+			bool satisfactory_precedence = OPERATOR_PRECEDENCE[current_operation->type] >= precedence_record;
+
+			// certain operations are right-associative and so the last of them in the chain should be executed last
+			if (final_operation != NULL && final_operation->type == OPERATION_CLOSURE) {
+				satisfactory_precedence = OPERATOR_PRECEDENCE[current_operation->type] > precedence_record;
+			}
+
+			// only select operators that we haven't handled yet and that have an appropriately bad level of precedence
+			if (current_operation->a == NULL && satisfactory_precedence) {
+				// update the variables to point to the new record-holding operator
 				final_element = current_token;
 				final_operation = current_operation;
-				current_precedence = OPERATION_PRECEDENCE[current_operation->type];
+				precedence_record = OPERATOR_PRECEDENCE[current_operation->type];
 				operation_location = i;
 			}
 		}
 	}
 
-	// if no operation was found, then this expression must entirely consist of application by juxtaposition
+	// if no operation was found, then this expression must entirely consist of property access operators and/or application by juxtaposition
 	if (final_operation == NULL) {
-		return make(ELEMENT_OPERATION, Operation_new(OPERATION_APPLICATION, operatify(expression, start, end - 1, heap), expression->content[end - 1]), heap);
+		Element *second_last_element = expression->content[end - 2];
+
+		if (second_last_element->type == ELEMENT_OPERATION) {
+			// if the second last element is an operation, then it must be an access operation
+			final_element = second_last_element;
+			final_operation = second_last_element->value;
+			operation_location = end - 2;
+		} else {
+			// otherwise, treat it as application by juxtaposition
+			return make(ELEMENT_OPERATION, Operation_new(OPERATION_APPLICATION, operatify(expression, start, end - 1, heap), expression->content[end - 1]), heap);
+		}
 	}
 
 	// if an operation was found, then process everything to the left of it and use it as the operation's first value
 	final_operation->a = operatify(expression, start, operation_location, heap);
 
 	// if an operation was found, then process everything to the right of it and use it as the operation's second value
-	final_operation->a = operatify(expression, operation_location + 1, end, heap);
+	final_operation->b = operatify(expression, operation_location + 1, end, heap);
 
 	return final_element;
 }
@@ -802,6 +1024,9 @@ Element *construct_expression(Stack *tokens, size_t *i, Stack **heap) {
 		Element *current_token = tokens->content[*i];
 
 		if (current_token->type == ELEMENT_BRACKET && (uintptr_t)(current_token->value)) {
+			// the loop will increment the position integer once after it exits so we're going to have to nudge it down so that the tokens after the bracket are not missed
+			(*i)--;
+
 			end_of_expression = true;
 		} else {
 			switch (current_token->type) {
@@ -854,6 +1079,9 @@ Element *construct_sequence(Stack *tokens, size_t *i, Stack **heap) {
 
 		// if we've come across a closing brace then it's the end of the sequence
 		if (current_token->type == ELEMENT_BRACE && (uintptr_t)(current_token->value)) {
+			// the loop will increment the position integer once after it exits so we're going to have to nudge it down so that the tokens after the bracket are not missed
+			(*i)--;
+
 			end_of_sequence = true;
 		} else {
 			switch (current_token->type) {
@@ -907,7 +1135,7 @@ Element *construct_tree(Stack *tokens, Stack **heap) {
 	return construct_sequence(tokens, &i, heap);
 }
 
-// function to recursively mark items as non-garbage
+// function to recursively mark items as non-garbage so that the garbage collector doesn't destroy useful data
 void garbage_check(Element *element) {
 	// stop the recursion if a valid element isn't provided or if the element has been visited already
 	if (element == NULL || element->gc_checked) {
@@ -940,20 +1168,46 @@ void garbage_check(Element *element) {
 				}
 			};
 			break;
+		case ELEMENT_SCOPE_COLLECTION:
+			{
+				Stack *scope_collection = element->value;
+
+				// iterate through all the scopes in the collection and check them
+				for (size_t i = 0; i < scope_collection->length; i++) {
+					garbage_check(scope_collection->content[i]);
+				}
+			};
+			break;
+		case ELEMENT_SCOPE:
+			{
+				Scope *scope = element->value;
+
+				// iterate through all the Maps in the Scope and check the keys and values
+				for (size_t i = 0; i < scope->length; i++) {
+					garbage_check(scope->maps[i].key);
+					garbage_check(scope->maps[i].value);
+				}
+			};
+			break;
+		case ELEMENT_CLOSURE:
+			{
+				Closure *closure = element->value;
+				garbage_check(closure->expression);
+				garbage_check(closure->variable);
+				garbage_check(closure->scopes);
+			};
+			break;
 	}
 }
 
 // function to free an element and its contents
 void Element_nuke(Element *element) {
 	switch (element->type) {
-		case ELEMENT_VARIABLE:
-		case ELEMENT_NUMBER:
-		case ELEMENT_STRING:
-		case ELEMENT_OPERATION:
-		case ELEMENT_SCOPE_COLLECTION:
-		case ELEMENT_SCOPE:
-			free(element->value);
+		case ELEMENT_NULL:
+		case ELEMENT_BRACKET:
+		case ELEMENT_BRACE:
 			break;
+
 		case ELEMENT_SEQUENCE:
 			{
 				Stack *sequence = element->value;
@@ -963,11 +1217,17 @@ void Element_nuke(Element *element) {
 					free(sequence->content[y]);
 				}
 
+				// free the sequence itself
 				free(sequence);
 			};
 			break;
+
+		default:
+			// most elements only need their value free'd
+			free(element->value);
 	}
 
+	// free the element itself
 	free(element);
 }
 
@@ -1008,21 +1268,165 @@ void garbage_collect(Element *result, Element *ast_root, Stack **call_stack, Sta
 			// if any Element is found that has not been marked as non-garbage, remove it from the stack and free it
 			*heap = Stack_delete(*heap, i);
 			Element_nuke(element);
+
+			// since we have just shifted all the eleents after this one in the heap tracker down by one position, shift the current index down by one position
 			i--;
 		}
 	}
 }
 
-// function to spit out an error and kill the program
-void whoops(char *reason) {
-	fputs("ERROR: ", stderr);
-	fputs(reason, stderr);
-	fputc('\n', stderr);
-	exit(1);
+// function to set a variable in any of the scopes available in the current evaluation
+// the local_only parameter forces the variable to be set only in the local scope
+void set_variable(Element *key, Element *value, Element *scopes, bool local_only) {
+	Stack *scope_collection = scopes->value;
+
+	Element *scope;
+
+	if (local_only) {
+		// if the local_only parameter is set, consider only the most recent scope
+		scope = scope_collection->content[scope_collection->length - 1];
+	} else {
+		bool found = false;
+
+		// search through all scopes from oldest to youngest until a scope is found
+		for (size_t i = 0; i < scope_collection->length && !found; i++) {
+			scope = scope_collection->content[i];
+
+			// if this scope has the key, select it
+			if (Scope_has(scope->value, key)) {
+				found = true;
+			}
+		}
+	}
+
+	// modify the appropriate scope according to the key and value specified
+	scope->value = Scope_set(scope->value, key, value);
+}
+
+// function to retrieve the value of a variable in any of the scopes available in the current evaluation
+Element *get_variable(Element *key, Element *scopes) {
+	Stack *scope_collection = scopes->value;
+
+	// iterate through all scopes from the youngest to the oldest
+	// since size_t is an unsigned integer type, it will overflow to a large positive value when it goes below zero, so the condition for this loop should check for a value greater than the Scope collection length
+	for (size_t i = scope_collection->length - 1; i < scope_collection->length; i--) {
+		Element *scope_element = scope_collection->content[i];
+
+		// retrieve a potential value from the Scope
+		Element *result = Scope_get(scope_element->value, key);
+
+		// if a value for the key was found in this scope, return it
+		if (result != NULL) {
+			return result;
+		}
+	}
+
+	// if no value was found, print the variable name and an error message
+	putchar('\n');
+	Element_print(key, 0, true);
+	putchar('\n');
+	whoops("variable not found");
+}
+
+// forward declaration of evaluate() for mutual recursion
+Element *evaluate(Element*, Element*, Stack**, Stack**, Stack**);
+
+// function to apply one element to another by juxtaposition
+Element *apply(Element *a, Element *b, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
+	switch (a->type) {
+		case ELEMENT_SCOPE:
+			// application of a Scope to any value finds the value associated with the key described by the value to which the Scope is applied
+			{
+				Element *result = Scope_get(a->value, b);
+				if (result == NULL) {
+					// if no result is found, print the key and an error message
+					putchar('\n');
+					Element_print(b, 0, true);
+					putchar('\n');
+					whoops("no such key in this scope");
+				}
+				return result;
+			};
+			break;
+
+		case ELEMENT_CLOSURE:
+			// application of a Closure to any value calls the Closure with the value
+			{
+				Closure *closure = a->value;
+
+				Stack *old_scopes = closure->scopes->value;
+
+				// make a copy of the old Scope collection so that future calls of this closure aren't executed with a mutated Scope collection
+				Element *scopes_copy = make(ELEMENT_SCOPE_COLLECTION, Stack_new(), heap);
+				for (size_t i = 0; i < old_scopes->length; i++) {
+					scopes_copy->value = Stack_push(scopes_copy->value, old_scopes->content[i]);
+				}
+
+				// if a variable name has been set, make a new scope containing the variable and its value
+				if (closure->variable != NULL) {
+					Element *scope = make(ELEMENT_SCOPE, Scope_new(), heap);
+
+					scope->value = Scope_set(scope->value, closure->variable, b);
+
+					// add the new scope to the new scope collection
+					scopes_copy->value = Stack_push(scopes_copy->value, scope);
+				}
+
+				// add the new set of scopes to the Scope collection stack
+				*scopes_stack = Stack_push(*scopes_stack, scopes_copy);
+
+				// add the closure to the call stack so that it isn't garbage collected mid-call
+				*call_stack = Stack_push(*call_stack, a);
+
+				// evaluate the Closure expression with the new Scope collection
+				Element *result = evaluate(closure->expression, ast_root, call_stack, scopes_stack, heap);
+
+				// remove the new Scope collection from the Scope collection stack so the previous Scope collection is restored
+				*scopes_stack = Stack_pop(*scopes_stack);
+
+				// the call has ended so it's safe to remove the Closure from the call stack
+				*call_stack = Stack_pop(*call_stack);
+
+				return result;
+			};
+			break;
+
+		case ELEMENT_STRING:
+			// application of a string to a string concatenates the strings
+			{
+				if (b->type != ELEMENT_STRING) {
+					whoops("string concatenation can only be applied to strings");
+				}
+
+				String *string_a = a->value;
+				String *string_b = b->value;
+
+				// make a new string for the result
+				String *result = String_new(string_a->length + string_b->length);
+
+				// iterate through all the characters in both strings and add them to the result string
+				for (size_t i = 0; i < result->length; i++) {
+					// once the first string is exhausted, move on to the next
+					if (i < string_a->length) {
+						result->content[i] = string_a->content[i];
+					} else {
+						result->content[i] = string_b->content[i - string_a->length];
+					}
+				}
+
+				// make a new Element for the result string and return it
+				return make(ELEMENT_STRING, result, heap);
+			};
+			break;
+
+		default:
+			whoops("cannot apply this type to any value");
+	}
 }
 
 // function to evaluate a branch of the abstract syntax tree
 Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
+	// get the most recently-added Scope collection from the stack of Scope collections
 	Element *scopes = (*scopes_stack)->content[(*scopes_stack)->length - 1];
 
 	switch (branch->type) {
@@ -1049,7 +1453,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					// boolean to indicate whether or not a matching instruction was found
 					bool handled = false;
 
-					// the "do" command just evaluates all its arguments in sequence from left to right
+					// the 'do' command just evaluates all its arguments in sequence from left to right
 					if (!handled && String_is(command->value, "do") && (handled = true)) {
 						// iterate through each argument and evaluate it
 						for (size_t i = 1; i < statement->length; i++) {
@@ -1057,11 +1461,135 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						}
 					}
 
-					// the "print" command evaluates all its arguments and prints them to the console from left to right
+					// the 'return' command immediately exits the current block and returns the result of an expression
+					if (!handled && String_is(command->value, "return") && (handled = true)) {
+						if (statement->length != 2) {
+							whoops("'return' statement requires exactly 1 argument");
+						}
+
+						// evaluate the single expression to determine the result
+						Element *result = evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap);
+
+						// remove the current Sequence's Scope object from the Scope stack
+						scopes->value = Stack_pop(scopes->value);
+
+						return result;
+					}
+
+					// the 'print' command evaluates all its arguments and prints them to the console from left to right
 					if (!handled && String_is(command->value, "print") && (handled = true)) {
 						for (size_t i = 1; i < statement->length; i++) {
 							Element_print(evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap), 0, false);
 						}
+					}
+
+					if (!handled && String_is(command->value, "if") && (handled = true)) {
+						if (statement->length < 3) {
+							whoops("'if' statement requires at least 2 arguments");
+						}
+
+						bool result = false;
+
+						// the 'if' statement accepts any number of conditions and actions and evaluates the first action for which the evaluation of the condition is truthy. A trailing action will be evaluated if one is present and if no other actions were evaluated
+						for (size_t i = 1; i < statement->length && !result; i += 2) {
+							if (i + 1 == statement->length) {
+								// if this is the last statement, execute it as the last action
+								evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap);
+							} else if (Element_is_truthy(evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap))) {
+								// if there is a condition and it evaluates to a truthy value, evaluate it and cease further evaluations
+
+								result = true;
+								evaluate(statement->content[i + 1], ast_root, call_stack, scopes_stack, heap);
+							}
+						}
+					}
+
+					// the 'while' statement accepts a condition and an action and will execute the action until the condition evaluates to a falsy value
+					if (!handled && String_is(command->value, "while") && (handled = true)) {
+						if (statement->length != 3) {
+							whoops("'while' statement requires exactly 2 arguments");
+						}
+
+						// evaluate the condition and check if it's a truthy value before iterating
+						while (Element_is_truthy(evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap))) {
+							// evaluate the action
+							evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+						}
+					}
+
+					// the 'let' command accepts a key and a value and makes a new variable accordingly
+					if (!handled && String_is(command->value, "let") && (handled = true)) {
+						if (statement->length != 3) {
+							whoops("'let' statement requires exactly 2 arguments");
+						}
+
+						Element *key = statement->content[1];
+
+						// evaluate the second argument to find the value to which the variable should be assigned
+						Element *value = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+
+						// update the relevant scope with the new mapping
+						set_variable(key, value, scopes, true);
+					}
+
+					// the 'set' command accepts a key and a value and updates an existing variable accordingly
+					if (!handled && String_is(command->value, "set") && (handled = true)) {
+						if (statement->length != 3) {
+							whoops("'set' statement requires exactly 2 arguments");
+						}
+
+						Element *key = statement->content[1];
+
+						// evaluate the second argument to find the value to which the variable should be assigned
+						Element *value = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+
+						// update the relevant scope with the new mapping
+						set_variable(key, value, scopes, false);
+					}
+
+					// the 'mut' command accepts a Scope object, a key expression and a value expression and updates the Scope object accordingly
+					if (!handled && String_is(command->value, "mut") && (handled = true)) {
+						if (statement->length != 4) {
+							whoops("'mut' statement requires exactly 3 arguments");
+						}
+
+						// evaluate the first argument to find the subject
+						Element *subject = evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap);
+
+						if (subject->type != ELEMENT_SCOPE) {
+							whoops("'mut' statement requires a Scope object as the first argument");
+						}
+
+						// evaluate the second argument to find the key
+						Element *key = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+
+						// evaluate the third argument to find the value
+						Element *value = evaluate(statement->content[3], ast_root, call_stack, scopes_stack, heap);
+
+						// update the Scope with the new mapping
+						subject->value = Scope_set(subject->value, key, value);
+					}
+
+					// the 'edit' command accepts a Scope object, a property name and a value and updates the Scope object accordingly
+					if (!handled && String_is(command->value, "edit") && (handled = true)) {
+						if (statement->length != 4) {
+							whoops("'edit' statement requires exactly 3 arguments");
+						}
+
+						// evaluate the first argument to find the subject
+						Element *subject = evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap);
+
+						if (subject->type != ELEMENT_SCOPE) {
+							whoops("'mut' statement requires a Scope object as the first argument");
+						}
+
+						Element *property_name = statement->content[2];
+
+						// evaluate the third argument to find the value
+						Element *value = evaluate(statement->content[3], ast_root, call_stack, scopes_stack, heap);
+
+						// update the Scope with the new mapping
+						subject->value = Scope_set(subject->value, property_name, value);
 					}
 
 					// if no matching command was found for this statement, it must be an invalid command
@@ -1073,13 +1601,240 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					garbage_collect(NULL, ast_root, call_stack, scopes_stack, heap);
 				}
 
-				// remove the now-redundant scope from the scope stack
+				// remove the current Sequence's Scope object from the Scope stack
 				scopes->value = Stack_pop(scopes->value);
 
-				// if no value was returned by the sequence, return its scope
+				// if no value was returned by the sequence, return its own scope
 				return scope;
 			};
 			break;
+
+		case ELEMENT_VARIABLE:
+			// if it's a variable name, return its value
+			return get_variable(branch, scopes);
+
+		case ELEMENT_OPERATION:
+			// handle the behaviours of each operation
+			{
+				Operation *operation = branch->value;
+
+				switch (operation->type) {
+					case OPERATION_APPLICATION:
+						// this operation handles the case where two values are juxtaposed
+						{
+							// evaluate each operand to obtain the actual values we need to operate on
+							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
+							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+
+							return apply(a, b, ast_root, call_stack, scopes_stack, heap);
+						};
+						break;
+
+					case OPERATION_EQUALITY:
+					case OPERATION_INEQUALITY:
+						{
+							// evaluate each operand to obtain the actual values we need to operate on
+							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
+							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+
+							// create a new number for the result
+							Number *number = Number_new();
+
+							// check if the two elements are equal or not
+							bool result = Element_compare(a, b);
+
+							// if we are checking for inequality, invert the result
+							if (operation->type == OPERATION_INEQUALITY) {
+								result = !result;
+							}
+
+							// set the number value to either 1 (true) or 0 (false) depending on the result
+							number->value_long = result ? 1 : 0;
+
+							// make a new Number Element containing the new number
+							return make(ELEMENT_NUMBER, number, heap);
+						};
+						break;
+
+					case OPERATION_ADDITION:
+					case OPERATION_SUBTRACTION:
+					case OPERATION_MULTIPLICATION:
+					case OPERATION_DIVISION:
+					case OPERATION_REMAINDER:
+					case OPERATION_POW:
+					case OPERATION_LT:
+					case OPERATION_GT:
+					case OPERATION_LTE:
+					case OPERATION_GTE:
+						{
+							// evaluate each operand to obtain the actual values we need to operate on
+							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
+							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+
+							// throw an error if either one is not a number
+							if (a->type != ELEMENT_NUMBER || b->type != ELEMENT_NUMBER) {
+								whoops("numeric operations can only be applied to numeric values");
+							}
+
+							// operate on the numbers and return a new Number Element containing the result
+							return make(ELEMENT_NUMBER, Number_operate(operation->type, a->value, b->value), heap);
+						};
+						break;
+
+					case OPERATION_SHIFT_LEFT:
+					case OPERATION_SHIFT_RIGHT:
+					case OPERATION_AND:
+					case OPERATION_OR:
+					case OPERATION_XOR:
+						// handle all the bitwise operations
+						{
+							// evaluate each operand to obtain the actual values we need to operate on
+							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
+							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+
+							if (a->type != ELEMENT_NUMBER || b->type != ELEMENT_NUMBER) {
+								whoops("bitwise operations may only be applied to integers");
+							}
+
+							Number *number_a = a->value;
+							Number *number_b = b->value;
+
+							if (number_a->is_double || number_b->is_double) {
+								whoops("bitwise operations may only be applied to integers");
+							}
+
+							// make a new number to store the result
+							Number *result = Number_new();
+
+							// perform the appropriate bitwise operation
+							switch (operation->type) {
+								case OPERATION_SHIFT_LEFT:
+									result->value_long = number_a->value_long << number_b->value_long;
+									break;
+								case OPERATION_SHIFT_RIGHT:
+									result->value_long = number_a->value_long >> number_b->value_long;
+									break;
+								case OPERATION_AND:
+									result->value_long = number_a->value_long & number_b->value_long;
+									break;
+								case OPERATION_OR:
+									result->value_long = number_a->value_long | number_b->value_long;
+									break;
+								case OPERATION_XOR:
+									result->value_long = number_a->value_long ^ number_b->value_long;
+									break;
+							}
+
+							// make a new Element to store the result and return it
+							return make(ELEMENT_NUMBER, result, heap);
+						};
+						break;
+
+					case OPERATION_SUBL:
+					case OPERATION_SUBG:
+						// these operators are used to obtain portions of a string based on a number 'n'
+						// </ (OPERATION_SUBL) keeps only the first n characters of the string
+						// >/ (OPERATION_SUBG) keeps only everything after the first n characters of the string
+						{
+							// evaluate each operand to obtain the actual values we need to operate on
+							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
+							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+
+							// make sure that the types line up for this operation
+							if (a->type != ELEMENT_STRING || b->type != ELEMENT_NUMBER) {
+								whoops("substring operations must be applied to a string and a non-negative integer");
+							}
+
+							String *string = a->value;
+							Number *slice_index = b->value;
+
+							// ensure that the number supplied is not a negative number or a floating-point value, since these kinds of values are not easily applicable to string slicing
+							if (slice_index->is_double || slice_index->value_long < 0) {
+								whoops("substring operations must be applied to a string and a non-negative integer");
+							}
+
+							// figure out the length of the new string
+							// for SUBL, this will either be the length of the string or the slice index, whichever is smaller
+							// for SUBG, this will either be the subtraction of the slice index from the length or zero if the slice index is bigger than the length
+							size_t length;
+							if (operation->type == OPERATION_SUBL) {
+								if (slice_index->value_long >= string->length) {
+									length = string->length;
+								} else {
+									length = slice_index->value_long;
+								}
+							} else {
+								if (slice_index->value_long >= string->length) {
+									length = 0;
+								} else {
+									length = string->length - slice_index->value_long;
+								}
+							}
+
+							String *result = String_new(length);
+
+							// iterate through the characters of the new string and update them to match the relevant characters in the old string
+							for (size_t i = 0; i < length; i++) {
+								if (operation->type == OPERATION_SUBL) {
+									result->content[i] = string->content[i];
+								} else {
+									result->content[i] = string->content[i + slice_index->value_long];
+								}
+							}
+
+							// make a new Element to store the result and return it
+							return make(ELEMENT_STRING, result, heap);
+						};
+						break;
+
+					case OPERATION_CLOSURE:
+						// this operation creates a new Closure Element that can be called by applying it to a value
+						{
+							Stack *current_scopes = scopes->value;
+
+							// create a copy of the current Scope collection so that its contents will be preserved until the closure is called
+							Element *scopes_copy = make(ELEMENT_SCOPE_COLLECTION, Stack_new(), heap);
+							for (size_t i = 0; i < current_scopes->length; i++) {
+								scopes_copy->value = Stack_push(scopes_copy->value, current_scopes->content[i]);
+							}
+
+							// if a variable name is not specified, don't bother setting it
+							// otherwise, use the variable name specified
+							Element *variable = operation->a->type == ELEMENT_NULL ? NULL : operation->a;
+
+							return make(ELEMENT_CLOSURE, Closure_new(operation->b, variable, scopes_copy), heap);
+						};
+						break;
+
+					case OPERATION_ACCESS:
+						// this operation does the same thing as applying a value to a Scope, except it applies variable names, similarly to how object properties are accessed in other languages
+						{
+							Element *subject = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
+							if (subject->type != ELEMENT_SCOPE) {
+								whoops("property access operation can only have a scope as a subject");
+							}
+
+							// retrieve the value from the scope, if any
+							Element *result = Scope_get(subject->value, operation->b);
+							if (result == NULL) {
+								// if no result is found, print the property name and an error message
+								putchar('\n');
+								Element_print(operation->b, 0, true);
+								putchar('\n');
+								whoops("no such property in this scope");
+							}
+
+							return result;
+						};
+						break;
+
+					default:
+						// throw an error if the user uses any operators that haven't been defined yet
+						whoops("operator not defined");
+				}
+			};
+			break;
+
 		default:
 			return branch;
 	}
@@ -1150,12 +1905,15 @@ String *read_file(char *path) {
 }
 
 int main(int argc, char *argv[]) {
+	// make sure that the user has supplied a script file to execute
 	if (argc < 2) {
 		puts("Please provide a script file as an argument.");
 	}
 
+	// read in the file contents
 	String *script = read_file(argv[1]);
 
+	// evaluate and execute the script
 	execute(script);
 
 	// free the memory that the script uses because we won't need it again

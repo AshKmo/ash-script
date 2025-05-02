@@ -56,7 +56,7 @@ String *String_append_char(String *string, char character) {
 	return string;
 }
 
-// function to print a String to the console
+// function to print a String to the console by putchar()-ing every character in its contents
 void String_print(String *string) {
 	for (size_t i = 0; i < string->length; i++) {
 		putchar(string->content[i]);
