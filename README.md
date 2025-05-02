@@ -1,5 +1,5 @@
 # ash-script
-A basic interpreter for a simple programming language, written for educational purposes.
+A basic interpreter for a simple programming language called ash-script, written for educational purposes.
 
 ## Compiling
 First of all, please keep in mind that ash-script has only been tested on a Linux laptop and on Ed Discussion. I've tried to make the code relatively portable, but otherwise there are no guarantees.
@@ -9,7 +9,8 @@ Clone this repository, then make a new directory called 'bin' next to this file.
 ## Running
 Run `./bin/ash-script <script-file>` to execute any valid ash-script file. For instance, run `./bin/ash-script examples/pi.txt` to execute the Pi calculation example.
 
-## Usage
+## Language reference
+ash-script is an interpreted, dynamically-typed, immediately-evaluated, garbage-collected, general-purpose programming language. Like any good programming language, it is 100% Turing complete. Unlike any good programming language, it is also a pretty dodgy language.
 
 ### Data types
 ash-script supports a number of different data types. The complete list of all data types are as follows:
