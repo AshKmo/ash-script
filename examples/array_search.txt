@@ -1,0 +1,80 @@
+# this is the closest thing that ash-script has to a class #
+# it's a function that accepts a name and a location and returns a Scope object that contains these properties #
+let Track (name => location => {
+	let name name;
+	let location location;
+});
+
+# this is an implementation of a very basic array class #
+let Array (? => {
+	let self {
+		let length 0;
+
+		# this function pushes an item to the end of an array #
+		let push (x => {
+			mut self (self.length) x;
+			edit self length (self.length + 1);
+		});
+	};
+
+	return self;
+});
+
+# a basic searching function that finds the index of a track based on its name #
+let search_for_track_name (tracks => query => {
+	let result -1;
+
+	let i 0;
+	while (i < tracks.length) {
+		if ((tracks i).name == query) {
+			set result i;
+			set i (tracks.length);
+		};
+		set i (i + 1);
+	};
+
+	return result;
+});
+
+let print_track (track => {
+	print (track.name) "\n";
+	print (track.location) "\n";
+});
+
+let print_tracks (tracks => {
+	let i 0;
+	while (i < tracks.length) {
+		do (print_track (tracks i));
+		set i (i + 1);
+	};
+});
+
+# usually this would read the tracks from a file, but this language doesn't have built-in support for files #
+let add_tracks (tracks => {
+	do (tracks.push (Track "Cracklin' Rosie" "sounds/01-Cracklin-Rosie.wav"));
+	do (tracks.push (Track "Soolaimon" "sounds/06-Soolaimon.wav"));
+	do (tracks.push (Track "Sweet Caroline" "sounds/20-Sweet-Caroline.wav"));
+});
+
+let main (? => {
+	# make a new array for the tracks #
+	# this calls the Array constructor with a null value ('?'), since it doesn't accept any arguments #
+	let tracks (Array ?);
+
+	do (add_tracks tracks);
+
+	do (print_tracks tracks);
+
+	print "Enter the track name you wish to find: ";
+	input query;
+
+	let result (search_for_track_name tracks query);
+
+	if (result < 0) {
+		print "Item not found\n";
+	} {
+		print "Found " ((tracks result).name) " at " result "\n";
+	};
+});
+
+do (main ?);
