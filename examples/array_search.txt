@@ -1,3 +1,5 @@
+# this example is a variation of task 7.3P Array Search #
+
 # this is the closest thing that ash-script has to a class #
 # it's a function that accepts a name and a location and returns a Scope object that contains these properties #
 let Track (name => location => {
