@@ -10,7 +10,7 @@ Clone this repository, then make a new directory called 'bin' next to this file.
 Run `./bin/ash-script <script-file>` to execute any valid ash-script file. For instance, run `./bin/ash-script examples/pi.txt` to execute the Pi calculation example.
 
 ## Language reference
-ash-script is an interpreted, dynamically-typed, garbage-collected, general-purpose programming language.
+ash-script is an interpreted, dynamically-typed, garbage-collected general-purpose programming language.
 
 ### Data types
 ash-script supports a number of different data types. The complete list of all data types are as follows:
