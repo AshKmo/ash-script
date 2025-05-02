@@ -29,7 +29,7 @@ Represents a series of characters of a certain length. In declaration, the follo
 - `\xHH`: the character with hex value HH
 
 #### Scope (`{let x 3; let "Bob" "a person"; let 0 "the first value";}`)
-The current scope of a sequence becomes, by default, the result of the evaluation of said sequence, allowing for manipulation of scopes as objects. This is ash-script's version of dictionaries, arrays and objects.
+The current scope of a sequence becomes, by default, the result of the evaluation of said sequence, allowing for the manipulation of scopes as data. Scopes are ash-script's version of dictionaries, arrays and objects.
 
 #### Closure (`x => x * 3`, `? => {print "You called me\n";}`, `x => y => x * y`)
 Represents a function that accepts a single argument and that contains the scopes enclosing it. Behaves very similarly to first-class functions in other languages, and is created in a very similar fashion to JavaScript's arrow functions.
