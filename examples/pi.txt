@@ -1,0 +1,24 @@
+# function that calculates Pi to some level of precision by integrating a semicircle of that radius #
+let calculate_pi (precision => {
+	let total 0;
+
+	let x (1 - precision);
+
+	while (x < precision) {
+		# calculate the left-point estimate for this x-value and add it to the total area #
+		set total (total + (4 * (precision - x) * (precision + x))**0.5);
+
+		# shift to the next x-coordinate #
+		set x (x + 1);
+	};
+
+	# calculate Pi by dividing the area of a circle by the square of its radius #
+	# since we have only integrated a semicircle, the circle area would be twice the total #
+	return (total / (precision * precision));
+});
+
+# calculate Pi with a precision value of 10000, which is good enough for about 5 digits #
+let pi (calculate_pi 10000);
+
+# print the result to the console #
+print "A rough approximation of Pi is " pi "\n";

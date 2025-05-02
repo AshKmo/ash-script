@@ -1,0 +1,16 @@
+let count 5;
+
+print "What is your name? ";
+
+input name;
+
+if (name == "Ash") {
+	print "That's an awesome name!\n";
+} {
+	print "Your name " name " is a";
+	while (count > 0) {
+		print " silly";
+		set count (count - 1);
+	};
+	print " name!\n";
+};

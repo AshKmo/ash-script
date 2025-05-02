@@ -1483,6 +1483,35 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						}
 					}
 
+					// the 'input' command waits for input from the user and then stores it in a variable
+					if (!handled && String_is(command->value, "input") && (handled = true)) {
+						if (statement->length != 2) {
+							whoops("'input' statement requires exactly 1 argument");
+						}
+
+						Element *key = statement->content[1];
+
+						// make a temporary buffer to store the input
+						char *buffer = NULL;
+						size_t allocated_length = 0;
+
+						// the actual length of the user input will be returned by getline, but we'll subtract one because we don't want the newline character at the end
+						size_t actual_length = getline(&buffer, &allocated_length, stdin) - 1;
+
+						String *result = String_new(actual_length);
+
+						// move the useful data in the buffer to the result string
+						for (size_t i = 0; i < actual_length; i++) {
+							result->content[i] = buffer[i];
+						}
+
+						// we no longer need the temporary buffer so it can be safely free'd
+						free(buffer);
+
+						// make a new String Element for the result and set it to the variable
+						set_variable(key, make(ELEMENT_STRING, result, heap), scopes, false);
+					}
+
 					if (!handled && String_is(command->value, "if") && (handled = true)) {
 						if (statement->length < 3) {
 							whoops("'if' statement requires at least 2 arguments");
