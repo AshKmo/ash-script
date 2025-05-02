@@ -52,7 +52,7 @@ let print_tracks (tracks => {
 });
 
 # usually this would read the tracks from a file, but this language doesn't have built-in support for files #
-let add_tracks (tracks => {
+let read_tracks (tracks => {
 	do (tracks.push (Track "Cracklin' Rosie" "sounds/01-Cracklin-Rosie.wav"));
 	do (tracks.push (Track "Soolaimon" "sounds/06-Soolaimon.wav"));
 	do (tracks.push (Track "Sweet Caroline" "sounds/20-Sweet-Caroline.wav"));
