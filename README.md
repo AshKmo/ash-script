@@ -19,14 +19,14 @@ ash-script supports a number of different data types. The complete list of all d
 Represents a null value.
 
 #### Number (`4`, `-3`, `3.14`, `-2.7`)
-Represents either an integer or a floating-point number. A leading '-' signifies a negative number (in this case, the '-' is not an operator).
+Represents either an integer or a floating-point number. A leading `-` signifies a negative number (in this case, the `-` is not an operator).
 
 #### String (`"Hello, world!"`)
 Represents a series of characters of a certain length. In declaration, the following escape sequences can be used:
 - `\n`: newline
 - `\r`: carriage return
 - `\t`: tab
-- `\xHH`: the character with hex value 'HH'
+- `\xHH`: the character with hex value HH
 
 #### Scope (`{let x 3; let "Bob" "a person"; let 0 "the first value";}`)
 The current scope of a sequence becomes, by default, the result of the evaluation of said sequence, allowing for manipulation of scopes as objects. This is ash-script's version of dictionaries, arrays and objects.
