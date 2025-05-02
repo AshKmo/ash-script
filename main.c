@@ -1483,6 +1483,14 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						}
 					}
 
+					// the 'whoops' command works like the 'print' command but also crashes the program and prints an error string
+					if (!handled && String_is(command->value, "whoops") && (handled = true)) {
+						for (size_t i = 1; i < statement->length; i++) {
+							Element_print(evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap), 0, false);
+						}
+						whoops("user-defined error");
+					}
+
 					// the 'input' command waits for input from the user and then stores it in a variable
 					if (!handled && String_is(command->value, "input") && (handled = true)) {
 						if (statement->length != 2) {

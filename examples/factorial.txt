@@ -1,0 +1,21 @@
+# an iterative factorial function #
+let factorial_iterative (x => {
+	let result 1;
+
+	while (x > 0) {
+		set result (result * x);
+		set x (x - 1);
+	};
+
+	if (x < 0) {
+		whoops "Cannot get the factorial of a negative number or a non-integer\n";
+	};
+
+	return result;
+});
+
+# a recursive factorial function #
+let factorial_recursive (x => {
+	if (x == 0) {
+	}
+});
