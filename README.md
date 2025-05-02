@@ -67,7 +67,7 @@ Accepts a single argument and sets the variable named by said argument to a stri
 Accepts two arguments and sets the variable named by the first argument to the contents of a file, the location of which is described by the evaluation of the second argument, which must be a string.
 
 #### `writefile`
-Accepts three arguments and sets the variable named by the first argument to a number 1 if the file at the location described by the evaluation of the second argument (which must be a string) has been successfully updated or created with the contents specified by the evaluation of the third argument, otherwise a number 0.
+Accepts three arguments and sets the variable named by the first argument to an integer number 1 if the file at the location described by the evaluation of the second argument (which must be a string) has been successfully updated or created with the contents specified by the evaluation of the third argument. Otherwise, the variable is set to an integer number 0.
 
 #### `if`
 Accepts any number of arguments, and iterates through each of them two-by-two. For each pair, the first argument in the pair is evaluated and, if the result is a truthy value, the second argument is evaluated and execution of the statement then ceases. A trailing argument, if specified, is evaluated if this never happens. For example:
@@ -81,7 +81,7 @@ if (x == 3) {
     print "x is 5\n";
 } {
     print "x is neither 3, 4, nor 5\n";
-}
+};
 ```
 
 #### `while`
@@ -98,3 +98,36 @@ Accepts three arguments, the first of which must evaluate to a Scope object that
 
 #### `edit`
 Accepts three arguments, the first of which must evaluate to a Scope object that will then be updated such that the key described by the second argument (without evaluation) will map to the evaluation of the third argument.
+
+### Operations
+ash-script also supports a variety of operations:
+
+#### Juxtaposition (`x y`)
+This operation evaluates to one of many different things depending on the type of the first element involved:
+- Scope: the value in the scope mapped to the key matching the evaluation of `y`
+- Closure: the application of the closure to the evaluation of `y`
+- String: the concatenation of `x` and `y`, which must both be strings
+
+#### Access (`x . y`)
+Evaluates to the value in the scope mapped to the key matching `y` (without evaluation).
+
+#### Equality (`x == y`)
+Evaluates to an integer number 1 if the evaluations of `x` and `y` are both of comparable types and are equal in value. Otherwise, it evaluates to an integer number 0. Every type is comparable except for Closure.
+
+#### Inequality (`x != y`)
+Same as the equality operator, but with the inverted result.
+
+#### Arithmetic operations (`x + y`, `x - y`, `x * y`, `x / y`, `x ** y`)
+Pretty obvious.
+
+#### Comparison operations (`x < y`, `x > y`, `x <= y`, `x >= y`)
+Also pretty obvious.
+
+#### Bitwise operations (`x << y`, `x >> y`, `x & y`, `x | y`, `x ^ y`)
+Not as obvious, but still very consistent with how C implements them.
+
+#### Substring operations (`</`, `>/`)
+These operations require that `x` be a string and `y` be an integer number. `x </ y` evaluates to a string containing only the first `y` characters of the string `x`, whilse `x >/ y` evaluates to a string containing everything but.
+
+#### Closure (`x => y`)
+Evaluates to a new closure that, when applied to a value, will be able to access said value by the variable name `x` and will evaluate to the evaluation of `y`, which will be evaluated when the closure is applied to a value.

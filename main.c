@@ -124,7 +124,7 @@ Element *Element_new(ElementType type, void *value) {
 
 // enumeration type used to represent the type of an Operation
 typedef enum {
-	OPERATION_APPLICATION,
+	OPERATION_JUXTAPOSITION,
 	OPERATION_ACCESS,
 	OPERATION_POW,
 	OPERATION_MULTIPLICATION,
@@ -878,7 +878,7 @@ Stack *tokenise(String *script, Stack **heap) {
 					// operators need to become operation elements
 					{
 						// make the new empty operation element
-						Operation *operation = Operation_new(OPERATION_APPLICATION, NULL, NULL);
+						Operation *operation = Operation_new(OPERATION_JUXTAPOSITION, NULL, NULL);
 
 						// match the new operator to its operation
 						// I apologise for this ugly monstrosity but it's necessary because C can't switch-case with strings
@@ -1041,7 +1041,7 @@ Element *operatify(Stack *expression, size_t start, size_t end, Stack **heap) {
 			operation_location = end - 2;
 		} else {
 			// otherwise, treat it as application by juxtaposition
-			return make(ELEMENT_OPERATION, Operation_new(OPERATION_APPLICATION, operatify(expression, start, end - 1, heap), expression->content[end - 1]), heap);
+			return make(ELEMENT_OPERATION, Operation_new(OPERATION_JUXTAPOSITION, operatify(expression, start, end - 1, heap), expression->content[end - 1]), heap);
 		}
 	}
 
@@ -1375,8 +1375,8 @@ Element *get_variable(Element *key, Element *scopes) {
 // forward declaration of evaluate() for mutual recursion
 Element *evaluate(Element*, Element*, Stack**, Stack**, Stack**);
 
-// function to apply one element to another by juxtaposition
-Element *apply(Element *a, Element *b, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
+// function to perform an operation on two elements after they have been juxtaposed
+Element *juxtapose(Element *a, Element *b, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
 	switch (a->type) {
 		case ELEMENT_SCOPE:
 			// application of a Scope to any value finds the value associated with the key described by the value to which the Scope is applied
@@ -1782,14 +1782,14 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 				Operation *operation = branch->value;
 
 				switch (operation->type) {
-					case OPERATION_APPLICATION:
+					case OPERATION_JUXTAPOSITION:
 						// this operation handles the case where two values are juxtaposed
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
 							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
 							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
 
-							return apply(a, b, ast_root, call_stack, scopes_stack, heap);
+							return juxtapose(a, b, ast_root, call_stack, scopes_stack, heap);
 						};
 						break;
 
