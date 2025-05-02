@@ -24,6 +24,50 @@ void whoops(char *reason) {
 	exit(1);
 }
 
+// function to return a new String object containing the contents of a file
+String *read_file(char *path) {
+	// open the script file for reading, or return NULL if it can't be opened
+	FILE *file_pointer = fopen(path, "rb");
+	if (file_pointer == NULL) {
+		return NULL;
+	}
+
+	// seek to the end and get the position after the last character
+	fseek(file_pointer, 0, SEEK_END);
+	long file_size = ftell(file_pointer);
+
+	// return to the start to read the file
+	fseek(file_pointer, 0, SEEK_SET);
+
+	// make a new string to store the script
+	String *file_content = String_new(file_size);
+
+	// store the file contents in the string
+	fread(file_content->content, 1, file_size, file_pointer);
+
+	// close the file so it doesn't reside in memory forever
+	fclose(file_pointer);
+
+	return file_content;
+}
+
+// function to attempt to write a String to a file and return true only if the operation was successful
+bool write_file(char *path, String *new_contents) {
+	// try to open the file for writing and return false if this doesn't happen
+	FILE *file_pointer = fopen(path, "wb");
+	if (file_pointer == NULL) {
+		return false;
+	}
+
+	// return true only if the entire contents were successfully written to the file
+	bool result = fwrite(new_contents->content, 1, new_contents->length, file_pointer) == new_contents->length;
+
+	// close the file so it doesn't reside in memory forever
+	fclose(file_pointer);
+
+	return result;
+}
+
 // numeric type that can represent either long integer or double-precision floating-point values
 typedef struct {
 	bool is_double;
@@ -1520,6 +1564,88 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						set_variable(key, make(ELEMENT_STRING, result, heap), scopes, false);
 					}
 
+					// the 'readfile' command reads the contents of a file into a variable
+					if (!handled && String_is(command->value, "readfile") && (handled = true)) {
+						if (statement->length != 3) {
+							whoops("'readfile' command requires exactly 2 arguments");
+						}
+
+						Element *key = statement->content[1];
+
+						// evaluate the path argument
+						Element *path = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+						if (path->type != ELEMENT_STRING) {
+							whoops("'readfile' command requires the second argument to be a filepath string");
+						}
+
+						String *path_string = path->value;
+
+						// make a temporary char array to store the path so that it can be passed to read_file()
+						char path_buffer[path_string->length + 1];
+
+						// copy the string contents to the temporary buffer
+						memcpy(&path_buffer, path_string->content, path_string->length);
+
+						// add a null terminator to the path string
+						path_buffer[path_string->length] = '\0';
+
+						// read the file
+						String *result_string = read_file(path_buffer);
+
+						Element *result;
+
+						// if the file contents can be read, make a String element and store them in it
+						// otherwise, the result will be a null element
+						if (result_string == NULL) {
+							result = make(ELEMENT_NULL, NULL, heap);
+						} else {
+							result = make(ELEMENT_STRING, result_string, heap);
+						}
+
+						set_variable(key, result, scopes, false);
+					}
+
+					// the 'writefile' command writes the contents of a String to a file and stores whether or not the operation succeeded in a variable
+					if (!handled && String_is(command->value, "writefile") && (handled = true)) {
+						if (statement->length != 4) {
+							whoops("'writefile' command requires exactly 3 arguments");
+						}
+
+						Element *key = statement->content[1];
+
+						// evaluate the new contents for the file
+						Element *new_contents = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+						if (new_contents->type != ELEMENT_STRING) {
+							whoops("'writefile' command requires the first argument to be a string");
+						}
+
+						// evaluate the path argument
+						Element *path = evaluate(statement->content[3], ast_root, call_stack, scopes_stack, heap);
+						if (path->type != ELEMENT_STRING) {
+							whoops("'writefile' command requires the second argument to be a filepath string");
+						}
+
+						String *path_string = path->value;
+
+						// make a temporary char array to store the path so that it can be passed to read_file()
+						char path_buffer[path_string->length + 1];
+
+						// copy the string contents to the temporary buffer
+						memcpy(&path_buffer, path_string->content, path_string->length);
+
+						// add a null terminator to the path string
+						path_buffer[path_string->length] = '\0';
+
+						// create a new Number to represent the result
+						Number *result = Number_new();
+
+						// attempt to write the new contents to the file and update the result number's value accordingly
+						result->value_long = write_file(path_buffer, new_contents->value) ? 1 : 0;
+
+						// update the variable to reflect the writing operation's verdict by setting it to a new Number Element representing said verdict
+						set_variable(key, make(ELEMENT_NUMBER, result, heap), scopes, false);
+					}
+
 					if (!handled && String_is(command->value, "if") && (handled = true)) {
 						if (statement->length < 3) {
 							whoops("'if' statement requires at least 2 arguments");
@@ -1915,41 +2041,17 @@ void execute(String *script) {
 	free(heap);
 }
 
-// function to return a new String object containing the contents of a file
-String *read_file(char *path) {
-	// open the script file for reading, or throw an error if it can't be opened
-	FILE *file_pointer = fopen(path, "rb");
-	if (file_pointer == NULL) {
-		whoops("cannot open this script file");
-	}
-
-	// seek to the end and get the position after the last character
-	fseek(file_pointer, 0, SEEK_END);
-	long file_size = ftell(file_pointer);
-
-	// return to the start to read the file
-	fseek(file_pointer, 0, SEEK_SET);
-
-	// make a new string to store the script
-	String *file_content = String_new(file_size);
-
-	// store the file contents in the string
-	fread(file_content->content, 1, file_size, file_pointer);
-
-	// close the file so it doesn't reside in memory forever
-	fclose(file_pointer);
-
-	return file_content;
-}
-
 int main(int argc, char *argv[]) {
 	// make sure that the user has supplied a script file to execute
 	if (argc < 2) {
 		whoops("a script file must be provided as a command-line argument.");
 	}
 
-	// read in the file contents
+	// read in the file contents or throw an error if the file cannot be read
 	String *script = read_file(argv[1]);
+	if (script == NULL) {
+		whoops("cannot read this script file");
+	}
 
 	// evaluate and execute the script
 	execute(script);
