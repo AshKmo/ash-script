@@ -1,5 +1,5 @@
-// The ash-script programming language interpreter
-// Written by Ashley Kollmorgen, 2025
+// the ash-script programming language interpreter
+// written by Ashley Kollmorgen, 2025
 // https://ashkmo.dedyn.io
 
 // import the necessary built-in libraries
