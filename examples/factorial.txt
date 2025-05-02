@@ -9,6 +9,7 @@ let factorial_iterative (x => {
 
 	if (x < 0) {
 		whoops "Cannot get the factorial of a negative number or a non-integer\n";
+		set result ?;
 	};
 
 	return result;
@@ -16,6 +17,23 @@ let factorial_iterative (x => {
 
 # a recursive factorial function #
 let factorial_recursive (x => {
+	if (x < 0) {
+		whoops "Cannot get the factorial of a negative number or a non-integer\n";
+	};
+
+	let result ?;
+
 	if (x == 0) {
-	}
+		set result 1;
+	} {
+		set result (x * factorial_recursive (x - 1));
+	};
+
+	return result;
 });
+
+let n1 6;
+let n2 6;
+
+print "The factorial of " n1 " is " (factorial_iterative n1) " according to the iterative algorithm\n";
+print "The factorial of " n2 " is " (factorial_recursive n2) " according to the recursive algorithm\n";

@@ -1,17 +1,14 @@
 # set the initial count for the number of times " silly" should be printed #
 let count 5;
 
-# ask the user for their name #
 print "What is your name? ";
 input name;
 
-# check the name #
 if (name == "Ash") {
 	print "That's an awesome name!\n";
 } {
 	print "Your name " name " is a";
 
-	# print " silly" for as many times as 'count' initially specified #
 	while (count > 0) {
 		print " silly";
 		set count (count - 1);

@@ -20,5 +20,4 @@ let calculate_pi (precision => {
 # calculate Pi with a precision value of 10000, which is good enough for about 5 digits #
 let pi (calculate_pi 10000);
 
-# print the result to the console #
 print "A rough approximation of Pi is " pi "\n";
