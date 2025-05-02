@@ -1909,8 +1909,11 @@ void execute(String *script) {
 
 // function to return a new String object containing the contents of a file
 String *read_file(char *path) {
-	// open the script file for reading
+	// open the script file for reading, or throw an error if it can't be opened
 	FILE *file_pointer = fopen(path, "rb");
+	if (file_pointer == NULL) {
+		whoops("cannot open this script file");
+	}
 
 	// seek to the end and get the position after the last character
 	fseek(file_pointer, 0, SEEK_END);
@@ -1922,10 +1925,8 @@ String *read_file(char *path) {
 	// make a new string to store the script
 	String *file_content = String_new(file_size);
 
-	// iterate through each character in the file and shove it in the string
-	for (long i = 0; i < file_size; i++) {
-		file_content->content[i] = fgetc(file_pointer);
-	}
+	// store the file contents in the string
+	fread(file_content->content, 1, file_size, file_pointer);
 
 	// close the file so it doesn't reside in memory forever
 	fclose(file_pointer);
@@ -1936,7 +1937,7 @@ String *read_file(char *path) {
 int main(int argc, char *argv[]) {
 	// make sure that the user has supplied a script file to execute
 	if (argc < 2) {
-		puts("Please provide a script file as an argument.");
+		whoops("a script file must be provided as a command-line argument.");
 	}
 
 	// read in the file contents
