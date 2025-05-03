@@ -12,6 +12,30 @@ Run `./bin/ash-script <script-file>` to execute any valid ash-script file. For i
 ## Language reference
 ash-script is an interpreted, dynamically-typed, garbage-collected general-purpose programming language.
 
+### Comments
+In ash-script, comments can be written between two hash marks, like so:
+
+```
+# this is a comment #
+```
+
+Anything between and including two hash marks is considered part of a comment and is not executed as code. Thus, multiline comments are also possible:
+
+```
+#
+This is a
+multiline
+comment.
+#
+```
+
+A slight downside to this approach is that shebangs must have an additional hash mark placed on the line after it:
+
+```
+#!/bin/ash-script
+#
+```
+
 ### Data types
 ash-script supports a number of different data types. The complete list of all data types are as follows:
 
@@ -35,7 +59,7 @@ The current scope of a sequence becomes, by default, the result of the evaluatio
 Represents a function that accepts a single argument and that contains the scopes enclosing it. Behaves very similarly to first-class functions in other languages, and is created in a very similar fashion to JavaScript's arrow functions.
 
 ### Sequences
-Every ash-script script is a sequence of statements that are executed in order. Each statement consists of a command name and a varying number of arguments, followed by a terminating semicolon:
+Every ash-script script is a sequence of statements that are executed in order. A sequence can also be placed inside an expression by enclosing it in braces (`{}`). Each statement in a sequence consists of a command name and a varying number of arguments, followed by a terminating semicolon:
 
 ```
 print "Hello, world!\n";
