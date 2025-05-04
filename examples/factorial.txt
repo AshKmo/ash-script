@@ -32,8 +32,8 @@ let factorial_recursive (x => {
 	return result;
 });
 
-let n1 6;
-let n2 6;
+let n1 -1;
+let n2 -1;
 
 print "The factorial of " n1 " is " (factorial_iterative n1) " according to the iterative algorithm\n";
 print "The factorial of " n2 " is " (factorial_recursive n2) " according to the recursive algorithm\n";

@@ -142,14 +142,14 @@ Evaluates to an integer number 1 if the evaluations of `x` and `y` are both of c
 #### Inequality (`x != y`)
 Same as the equality operator, but with the inverted result.
 
-#### Arithmetic operations (`x + y`, `x - y`, `x * y`, `x / y`, `x ** y`)
-Pretty obvious.
+#### Arithmetic operations (`x + y`, `x - y`, `x * y`, `x / y`, `x % y`, `x ** y`)
+Pretty self-explanatory.
 
 #### Comparison operations (`x < y`, `x > y`, `x <= y`, `x >= y`)
-Also pretty obvious.
+Also pretty self-explanatory.
 
 #### Bitwise operations (`x << y`, `x >> y`, `x & y`, `x | y`, `x ^ y`)
-Not as obvious, but still very consistent with how C implements them.
+Not as self-explanatory, but still very consistent with how C implements them.
 
 #### Substring operations (`</`, `>/`)
 These operations require that `x` be a string and `y` be an integer number. `x </ y` evaluates to a string containing only the first `y` characters of the string `x`, whilse `x >/ y` evaluates to a string containing everything but.
