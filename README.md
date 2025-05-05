@@ -89,7 +89,7 @@ Identical to `print`, but also causes the program to immediately crash and cease
 Accepts a single argument and sets the variable named by said argument to a random floating-point number with a value n such that 0 < n <= 1.
 
 #### `input`
-Accepts a single argument and sets the variable named by said argument to a string containing the users input, which it receives from the console.
+Accepts a single argument and sets the variable named by said argument to a string containing the user's input, which it receives from the console.
 
 #### `readfile`
 Accepts two arguments and sets the variable named by the first argument to the contents of a file, the location of which is described by the evaluation of the second argument, which must be a string.
