@@ -142,14 +142,17 @@ typedef enum {
 	OPERATION_GTE,
 	OPERATION_EQUALITY,
 	OPERATION_INEQUALITY,
-	OPERATION_AND,
+	OPERATION_BWAND,
+	OPERATION_BWXOR,
+	OPERATION_BWOR,
 	OPERATION_XOR,
+	OPERATION_AND,
 	OPERATION_OR,
 	OPERATION_CLOSURE,
 } OperationType;
 
 // array storing the precedence value of each operator
-const int OPERATOR_PRECEDENCE[] = {0, 0, 1, 2, 3, 3, 3, 4, 4, 5, 5, 6, 6, 7, 8, 8, 8, 8, 9, 9, 10, 11, 12, 13};
+const int OPERATOR_PRECEDENCE[] = {0, 0, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 8, 9, 10, 11, 12, 13, 14};
 
 // type used to represent an operation that is to be performed on two values
 typedef struct {
@@ -909,11 +912,11 @@ Stack *tokenise(String *script, Stack **heap) {
 						} else if (String_is(current_value, ">>")) {
 							operation->type = OPERATION_SHIFT_RIGHT;
 						} else if (String_is(current_value, "&")) {
-							operation->type = OPERATION_AND;
+							operation->type = OPERATION_BWAND;
 						} else if (String_is(current_value, "|")) {
-							operation->type = OPERATION_OR;
+							operation->type = OPERATION_BWOR;
 						} else if (String_is(current_value, "^")) {
-							operation->type = OPERATION_XOR;
+							operation->type = OPERATION_BWXOR;
 						} else if (String_is(current_value, "**")) {
 							operation->type = OPERATION_POW;
 						} else if (String_is(current_value, ">/")) {
@@ -924,6 +927,12 @@ Stack *tokenise(String *script, Stack **heap) {
 							operation->type = OPERATION_ACCESS;
 						} else if (String_is(current_value, "=>")) {
 							operation->type = OPERATION_CLOSURE;
+						} else if (String_is(current_value, "&&")) {
+							operation->type = OPERATION_AND;
+						} else if (String_is(current_value, "||")) {
+							operation->type = OPERATION_OR;
+						} else if (String_is(current_value, "^^")) {
+							operation->type = OPERATION_XOR;
 						}
 
 						// set the value of the token to its new Operation object
@@ -1846,9 +1855,9 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 
 					case OPERATION_SHIFT_LEFT:
 					case OPERATION_SHIFT_RIGHT:
-					case OPERATION_AND:
-					case OPERATION_OR:
-					case OPERATION_XOR:
+					case OPERATION_BWAND:
+					case OPERATION_BWOR:
+					case OPERATION_BWXOR:
 						// handle all the bitwise operations
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
@@ -1877,13 +1886,13 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 								case OPERATION_SHIFT_RIGHT:
 									result->value_long = number_a->value_long >> number_b->value_long;
 									break;
-								case OPERATION_AND:
+								case OPERATION_BWAND:
 									result->value_long = number_a->value_long & number_b->value_long;
 									break;
-								case OPERATION_OR:
+								case OPERATION_BWOR:
 									result->value_long = number_a->value_long | number_b->value_long;
 									break;
-								case OPERATION_XOR:
+								case OPERATION_BWXOR:
 									result->value_long = number_a->value_long ^ number_b->value_long;
 									break;
 							}
@@ -1994,6 +2003,34 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					default:
 						// throw an error if the user uses any operators that haven't been defined yet
 						whoops("operator not defined");
+
+					case OPERATION_AND:
+					case OPERATION_OR:
+						{
+							// evaluate the first operand
+							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
+
+							// return either the first or second operand evaluations based on whether or not the operation is && or || and whether or not the first operand evaluation is truthy
+							return
+								operation->type == OPERATION_AND != Element_is_truthy(a) ? a :
+								evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+						};
+						break;
+
+					case OPERATION_XOR:
+						{
+							Number *result = Number_new();
+
+							// evaluate each operand to obtain the actual values we need to operate on
+							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
+							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+
+							// return a truthy value only if the truthiness of the two evaluations differ
+							result->value_long = Element_is_truthy(a) != Element_is_truthy(b) ? 1 : 0;
+
+							return make(ELEMENT_NUMBER, result, heap);
+						};
+						break;
 				}
 			};
 			break;
