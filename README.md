@@ -85,6 +85,9 @@ Prints to the console a text representation of the evaluations of each of its ar
 #### `whoops`
 Identical to `print`, but also causes the program to immediately crash and cease execution
 
+#### `rand`
+Accepts a single argument and sets the variable named by said argument to a random floating-point number with a value n such that 0 < n <= 1.
+
 #### `input`
 Accepts a single argument and sets the variable named by said argument to a string containing the users input, which it receives from the console.
 
@@ -150,6 +153,9 @@ Also pretty self-explanatory.
 
 #### Bitwise operations (`x << y`, `x >> y`, `x & y`, `x | y`, `x ^ y`)
 Not as self-explanatory, but still very consistent with how C implements them.
+
+#### Logical operations (`x ^^ y`, `x && y`, `x || y`)
+Works very similarly to the JavaScript logical operations but with an additional XOR operation (`^^`) that returns an integer number 1 if the truthiness of the two values differ, and 0 otherwise.
 
 #### Substring operations (`</`, `>/`)
 These operations require that `x` be a string and `y` be an integer number. `x </ y` evaluates to a string containing only the first `y` characters of the string `x`, whilse `x >/ y` evaluates to a string containing everything but.
