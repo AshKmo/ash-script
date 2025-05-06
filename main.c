@@ -159,16 +159,16 @@ const int OPERATOR_PRECEDENCE[] = {0, 0, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 
 // type used to represent an operation that is to be performed on two values
 typedef struct {
 	OperationType type;
-	Element *a;
-	Element *b;
+	Element *element_a;
+	Element *element_b;
 } Operation;
 
 // function to allocate memory for a new Operation
 Operation *Operation_new(OperationType type, Element *a, Element *b) {
 	Operation *new_operation = malloc(sizeof(Operation));
 	new_operation->type = type;
-	new_operation->a = a;
-	new_operation->b = b;
+	new_operation->element_a = a;
+	new_operation->element_b = b;
 	return new_operation;
 }
 
@@ -219,12 +219,12 @@ Number* Number_operate(OperationType operation_type, Number *number_a, Number *n
 
 			if (result->is_double) {
 				// if the result needs to be floating-point, convert the operands to floating-point
-				double da = number_a->is_double ? number_a->value_double : number_a->value_long;
-				double db = number_b->is_double ? number_b->value_double : number_b->value_long;
+				double double_a = number_a->is_double ? number_a->value_double : number_a->value_long;
+				double double_b = number_b->is_double ? number_b->value_double : number_b->value_long;
 
 				// if the denominumber_ator is zero, use the appropriate infinity value
 				// otherwise, perform regular floating-point division
-				result->value_double = db == 0 ? (da == 0 ? NAN : da > 0 ? INFINITY : -INFINITY) : da / db;
+				result->value_double = double_b == 0 ? (double_a == 0 ? NAN : double_a > 0 ? INFINITY : -INFINITY) : double_a / double_b;
 			} else {
 				// if the two values are normal integers and the denominumber_ator isn't zero, just use integer division
 				result->value_long = number_a->value_long / number_b->value_long;
@@ -245,10 +245,10 @@ Number* Number_operate(OperationType operation_type, Number *number_a, Number *n
 			result->is_double = true;
 
 			// convert each operand to a double
-			double da = number_a->is_double ? number_a->value_double : number_a->value_long;
-			double db = number_b->is_double ? number_b->value_double : number_b->value_long;
+			double double_a = number_a->is_double ? number_a->value_double : number_a->value_long;
+			double double_b = number_b->is_double ? number_b->value_double : number_b->value_long;
 
-			result->value_double = pow(da, db);
+			result->value_double = pow(double_a, double_b);
 			break;
 
 		case OPERATION_LT:
@@ -311,24 +311,24 @@ Scope *Scope_new() {
 // forward declaration of Scope_get() for mutual recursion
 Element *Scope_get(Scope*, Element*);
 
-// function to compare two Elements
-bool Element_compare(Element *a, Element *b) {
+// function to compare two Elements a and b
+bool Element_compare(Element *element_a, Element *element_b) {
 	// handle the case where at least one of the elements is invalid
-	if (a == NULL || b == NULL) {
+	if (element_a == NULL || element_b == NULL) {
 		return false;
 	}
 
 	// if the same Element is being passed to both arguments, then they are equal
-	if (a == b) {
+	if (element_a == element_b) {
 		return true;
 	}
 
 	// elements must be of the same type to be equal
-	if (a->type != b->type) {
+	if (element_a->type != element_b->type) {
 		return false;
 	}
 
-	switch (a->type) {
+	switch (element_a->type) {
 		case ELEMENT_NULL:
 			// there is only one value that null Elements can be, and we already know that the type is the same, so these elements must be equal
 			return true;
@@ -337,8 +337,8 @@ bool Element_compare(Element *a, Element *b) {
 		case ELEMENT_STRING:
 			// string-like values can be compared by comparing their lengths and each character in them
 			{
-				String *string_a = a->value;
-				String *string_b = b->value;
+				String *string_a = element_a->value;
+				String *string_b = element_b->value;
 
 				// if the lengths are different, the strings are different
 				if (string_a->length != string_b->length) {
@@ -359,8 +359,8 @@ bool Element_compare(Element *a, Element *b) {
 
 		case ELEMENT_NUMBER:
 			{
-				Number *number_a = a->value;
-				Number *number_b = b->value;
+				Number *number_a = element_a->value;
+				Number *number_b = element_b->value;
 
 				// each number can be either a double or long, so each combination of doubles and longs must be considered
 				if (number_a->is_double) {
@@ -381,8 +381,8 @@ bool Element_compare(Element *a, Element *b) {
 
 		case ELEMENT_SCOPE:
 			{
-				Scope *scope_a = a->value;
-				Scope *scope_b = b->value;
+				Scope *scope_a = element_a->value;
+				Scope *scope_b = element_b->value;
 
 				// scopes with differing numbers of mappings must not be equal
 				if (scope_a->length != scope_b->length) {
@@ -637,19 +637,19 @@ Closure *Closure_new(Element *expression, Element *variable, Element *scopes) {
 }
 
 // function to convert a hex digit into the number it represents (returned as a char)
-char hex_char(char c) {
+char hex_char(char hex_char) {
 	// uppercase letters represent 10-15, so get the index of the letter relative to 'A' and add 10
-	if (c >= 97) {
-		return c - 97 + 10;
+	if (hex_char >= 97) {
+		return hex_char - 97 + 10;
 	}
 
 	// lowercase letters also represent 10-15, so get the index of the letter relative to 'a' and add 10
-	if (c >= 65) {
-		return c - 65 + 10;
+	if (hex_char >= 65) {
+		return hex_char - 65 + 10;
 	}
 
 	// decimal digits represent 0-9, so just get the index of the digit relative to '0'
-	return c - 48;
+	return hex_char - 48;
 }
 
 // function that makes a new element with a specific type and value, and pushes it to a stack so that it can be garbage collected later
@@ -1031,7 +1031,7 @@ Element *operatify(Stack *expression, size_t start, size_t end, Stack **heap) {
 			}
 
 			// only select operators that we haven't handled yet and that have an appropriately bad level of precedence
-			if (current_operation->a == NULL && satisfactory_precedence) {
+			if (current_operation->element_a == NULL && satisfactory_precedence) {
 				// update the variables to point to the new record-holding operator
 				final_element = current_token;
 				final_operation = current_operation;
@@ -1057,10 +1057,10 @@ Element *operatify(Stack *expression, size_t start, size_t end, Stack **heap) {
 	}
 
 	// if an operation was found, then process everything to the left of it and use it as the operation's first value
-	final_operation->a = operatify(expression, start, operation_location, heap);
+	final_operation->element_a = operatify(expression, start, operation_location, heap);
 
 	// if an operation was found, then process everything to the right of it and use it as the operation's second value
-	final_operation->b = operatify(expression, operation_location + 1, end, heap);
+	final_operation->element_b = operatify(expression, operation_location + 1, end, heap);
 
 	return final_element;
 }
@@ -1204,8 +1204,8 @@ void garbage_check(Element *element) {
 		case ELEMENT_OPERATION:
 			{
 				Operation *operation = element->value;
-				garbage_check(operation->a);
-				garbage_check(operation->b);
+				garbage_check(operation->element_a);
+				garbage_check(operation->element_b);
 			};
 			break;
 		case ELEMENT_SEQUENCE:
@@ -1387,16 +1387,16 @@ Element *get_variable(Element *key, Element *scopes) {
 Element *evaluate(Element*, Element*, Stack**, Stack**, Stack**);
 
 // function to perform an operation on two elements after they have been juxtaposed
-Element *juxtapose(Element *a, Element *b, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
-	switch (a->type) {
+Element *juxtapose(Element *element_a, Element *element_b, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
+	switch (element_a->type) {
 		case ELEMENT_SCOPE:
 			// application of a Scope to any value finds the value associated with the key described by the value to which the Scope is applied
 			{
-				Element *result = Scope_get(a->value, b);
+				Element *result = Scope_get(element_a->value, element_b);
 				if (result == NULL) {
 					// if no result is found, print the key and an error message
 					putchar('\n');
-					Element_print(b, 0, true);
+					Element_print(element_b, 0, true);
 					putchar('\n');
 					whoops("no such key in this scope");
 				}
@@ -1407,7 +1407,7 @@ Element *juxtapose(Element *a, Element *b, Element *ast_root, Stack **call_stack
 		case ELEMENT_CLOSURE:
 			// application of a Closure to any value calls the Closure with the value
 			{
-				Closure *closure = a->value;
+				Closure *closure = element_a->value;
 
 				Stack *old_scopes = closure->scopes->value;
 
@@ -1421,7 +1421,7 @@ Element *juxtapose(Element *a, Element *b, Element *ast_root, Stack **call_stack
 				if (closure->variable != NULL) {
 					Element *scope = make(ELEMENT_SCOPE, Scope_new(), heap);
 
-					scope->value = Scope_set(scope->value, closure->variable, b);
+					scope->value = Scope_set(scope->value, closure->variable, element_b);
 
 					// add the new scope to the new scope collection
 					scopes_copy->value = Stack_push(scopes_copy->value, scope);
@@ -1431,7 +1431,7 @@ Element *juxtapose(Element *a, Element *b, Element *ast_root, Stack **call_stack
 				*scopes_stack = Stack_push(*scopes_stack, scopes_copy);
 
 				// add the closure to the call stack so that it isn't garbage collected mid-call
-				*call_stack = Stack_push(*call_stack, a);
+				*call_stack = Stack_push(*call_stack, element_a);
 
 				// evaluate the Closure expression with the new Scope collection
 				Element *result = evaluate(closure->expression, ast_root, call_stack, scopes_stack, heap);
@@ -1449,12 +1449,12 @@ Element *juxtapose(Element *a, Element *b, Element *ast_root, Stack **call_stack
 		case ELEMENT_STRING:
 			// application of a string to a string concatenates the strings
 			{
-				if (b->type != ELEMENT_STRING) {
+				if (element_b->type != ELEMENT_STRING) {
 					whoops("string concatenation can only be applied to strings");
 				}
 
-				String *string_a = a->value;
-				String *string_b = b->value;
+				String *string_a = element_a->value;
+				String *string_b = element_b->value;
 
 				// make a new string for the result
 				String *result = String_new(string_a->length + string_b->length);
@@ -1819,10 +1819,10 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						// this operation handles the case where two values are juxtaposed
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
-							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
+							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
 
-							return juxtapose(a, b, ast_root, call_stack, scopes_stack, heap);
+							return juxtapose(element_a, element_b, ast_root, call_stack, scopes_stack, heap);
 						};
 						break;
 
@@ -1830,14 +1830,14 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					case OPERATION_INEQUALITY:
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
-							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
+							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
 
 							// create a new number for the result
 							Number *number = Number_new();
 
 							// check if the two elements are equal or not
-							bool result = Element_compare(a, b);
+							bool result = Element_compare(element_a, element_b);
 
 							// if we are checking for inequality, invert the result
 							if (operation->type == OPERATION_INEQUALITY) {
@@ -1864,16 +1864,16 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					case OPERATION_GTE:
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
-							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
+							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
 
 							// throw an error if either one is not a number
-							if (a->type != ELEMENT_NUMBER || b->type != ELEMENT_NUMBER) {
+							if (element_a->type != ELEMENT_NUMBER || element_b->type != ELEMENT_NUMBER) {
 								whoops("numeric operations can only be applied to numeric values");
 							}
 
 							// operate on the numbers and return a new Number Element containing the result
-							return make(ELEMENT_NUMBER, Number_operate(operation->type, a->value, b->value), heap);
+							return make(ELEMENT_NUMBER, Number_operate(operation->type, element_a->value, element_b->value), heap);
 						};
 						break;
 
@@ -1885,15 +1885,15 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						// handle all the bitwise operations
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
-							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
+							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
 
-							if (a->type != ELEMENT_NUMBER || b->type != ELEMENT_NUMBER) {
+							if (element_a->type != ELEMENT_NUMBER || element_b->type != ELEMENT_NUMBER) {
 								whoops("bitwise operations may only be applied to integers");
 							}
 
-							Number *number_a = a->value;
-							Number *number_b = b->value;
+							Number *number_a = element_a->value;
+							Number *number_b = element_b->value;
 
 							if (number_a->is_double || number_b->is_double) {
 								whoops("bitwise operations may only be applied to integers");
@@ -1933,16 +1933,16 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						// >/ (OPERATION_SUBG) keeps only everything after the first n characters of the string
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
-							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
+							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
 
 							// make sure that the types line up for this operation
-							if (a->type != ELEMENT_STRING || b->type != ELEMENT_NUMBER) {
+							if (element_a->type != ELEMENT_STRING || element_b->type != ELEMENT_NUMBER) {
 								whoops("substring operations must be applied to a string and a non-negative integer");
 							}
 
-							String *string = a->value;
-							Number *slice_index = b->value;
+							String *string = element_a->value;
+							Number *slice_index = element_b->value;
 
 							// ensure that the number supplied is not a negative number or a floating-point value, since these kinds of values are not easily applicable to string slicing
 							if (slice_index->is_double || slice_index->value_long < 0) {
@@ -1996,26 +1996,26 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 
 							// if a variable name is not specified, don't bother setting it
 							// otherwise, use the variable name specified
-							Element *variable = operation->a->type == ELEMENT_NULL ? NULL : operation->a;
+							Element *variable = operation->element_a->type == ELEMENT_NULL ? NULL : operation->element_a;
 
-							return make(ELEMENT_CLOSURE, Closure_new(operation->b, variable, scopes_copy), heap);
+							return make(ELEMENT_CLOSURE, Closure_new(operation->element_b, variable, scopes_copy), heap);
 						};
 						break;
 
 					case OPERATION_ACCESS:
 						// this operation does the same thing as applying a value to a Scope, except it applies variable names, similarly to how object properties are accessed in other languages
 						{
-							Element *subject = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
+							Element *subject = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
 							if (subject->type != ELEMENT_SCOPE) {
 								whoops("property access operation can only have a scope as a subject");
 							}
 
 							// retrieve the value from the scope, if any
-							Element *result = Scope_get(subject->value, operation->b);
+							Element *result = Scope_get(subject->value, operation->element_b);
 							if (result == NULL) {
 								// if no result is found, print the property name and an error message
 								putchar('\n');
-								Element_print(operation->b, 0, true);
+								Element_print(operation->element_b, 0, true);
 								putchar('\n');
 								whoops("no such property in this scope");
 							}
@@ -2024,20 +2024,16 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						};
 						break;
 
-					default:
-						// throw an error if the user uses any operators that haven't been defined yet
-						whoops("operator not defined");
-
 					case OPERATION_AND:
 					case OPERATION_OR:
 						{
 							// evaluate the first operand
-							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
+							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
 
 							// return either the first or second operand evaluations based on whether or not the operation is && or || and whether or not the first operand evaluation is truthy
 							return
-								operation->type == OPERATION_AND != Element_is_truthy(a) ? a :
-								evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+								operation->type == OPERATION_AND != Element_is_truthy(element_a) ? element_a :
+								evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
 						};
 						break;
 
@@ -2046,15 +2042,19 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 							Number *result = Number_new();
 
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *a = evaluate(operation->a, ast_root, call_stack, scopes_stack, heap);
-							Element *b = evaluate(operation->b, ast_root, call_stack, scopes_stack, heap);
+							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
+							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
 
 							// return a truthy value only if the truthiness of the two evaluations differ
-							result->value_long = Element_is_truthy(a) != Element_is_truthy(b) ? 1 : 0;
+							result->value_long = Element_is_truthy(element_a) != Element_is_truthy(element_b) ? 1 : 0;
 
 							return make(ELEMENT_NUMBER, result, heap);
 						};
 						break;
+
+					default:
+						// throw an error if the user uses any operators that haven't been defined yet
+						whoops("operator not defined");
 				}
 			};
 			break;
