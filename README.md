@@ -32,7 +32,7 @@ comment.
 A slight downside to this approach is that shebangs must have an additional hash mark placed on the line after them:
 
 ```
-#!/build/ash-script
+#!/build/ash-script run
 #
 ```
 
