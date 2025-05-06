@@ -1790,6 +1790,10 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 
 					// if no matching command was found for this statement, it must be an invalid command
 					if (!handled) {
+						// print the invalid command, then throw an error about it
+						putchar('\n');
+						String_print(command->value);
+						putchar('\n');
 						whoops("command not recognised");
 					}
 
@@ -2102,22 +2106,47 @@ void execute(String *script) {
 	free(heap);
 }
 
+// procedure to seed the RNG using the system clock and CPU tick count, then generate one random number to shuffle it up a little
+// this seems to give pretty good random numbers
+void seed_rng() {
+	srand(time(NULL) * clock());
+	rand();
+}
+
+// main procedure executed when the program is run
 int main(int argc, char *argv[]) {
 	// make sure that the user has supplied a script file to execute
 	if (argc < 2) {
-		whoops("a script file must be provided as a command-line argument.");
+		whoops("please use one of the sub-commands 'run' or 'eval'.");
 	}
 
-	// read in the file contents or throw an error if the file cannot be read
-	String *script = read_file(argv[1]);
-	if (script == NULL) {
-		whoops("cannot read this script file");
+	if (argc == 2) {
+		whoops("please provide an argument to the sub-command.");
 	}
 
-	// seed the RNG using the system clock and CPU tick count, then generate one random number to shuffle it up a little
-	// this seems to give pretty good random numbers
-	srand(time(NULL) * clock());
-	rand();
+	if (argc > 3) {
+		whoops("too many arguments were provided.");
+	}
+
+	String *script;
+
+	if (strcmp(argv[1], "run") == 0) {
+		// if the 'run' command was used, read in the file contents or throw an error if the file cannot be read
+		script = read_file(argv[2]);
+		if (script == NULL) {
+			whoops("cannot read this script file");
+		}
+
+		seed_rng();
+	} else if (strcmp(argv[1], "eval") == 0) {
+		// if the 'eval' command was used, use the third argument as the code to evaluate
+		size_t length = strlen(argv[2]);
+		script = String_new(length);
+		memcpy(script->content, argv[2], length);
+	} else {
+		puts(argv[1]);
+		whoops("unknown command.");
+	}
 
 	// evaluate and execute the script
 	execute(script);

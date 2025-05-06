@@ -7,7 +7,7 @@ First of all, please keep in mind that ash-script has only been tested on a Linu
 Clone this repository, then make a new directory called 'bin' next to this file. Ensure make and gcc are installed, then run `make` to compile the interpreter. Once compiled, a new binary called 'ash-script' will be placed in the 'bin' directory.
 
 ## Running
-Run `./bin/ash-script <script-file>` to execute any valid ash-script file. For instance, run `./bin/ash-script examples/pi.txt` to execute the Pi calculation example.
+Run `./bin/ash-script run <script-file>` to execute any valid ash-script file. For instance, run `./bin/ash-script run examples/pi.txt` to execute the Pi calculation example. If you want to execute a script directly, run `./bin/ash-script eval <script>`. For example, run `./bin/ash-script eval 'print "Hello, world!\n";'` to directly run a Hello World program.
 
 ## Language reference
 ash-script is an interpreted, dynamically-typed, garbage-collected general-purpose programming language.
