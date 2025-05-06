@@ -502,7 +502,7 @@ void Element_print(Element *element, int indentation, bool literal) {
 					printf("%.*g", DBL_DECIMAL_DIG, number->value_double);
 				} else {
 					// if the number is a long integer, just print it
-					printf("%d", number->value_long);
+					printf("%ld", number->value_long);
 				}
 			};
 			break;
@@ -1381,6 +1381,8 @@ Element *get_variable(Element *key, Element *scopes) {
 	Element_print(key, 0, true);
 	putchar('\n');
 	whoops("variable not found");
+
+	return NULL;
 }
 
 // forward declaration of evaluate() for mutual recursion
@@ -1477,6 +1479,8 @@ Element *juxtapose(Element *element_a, Element *element_b, Element *ast_root, St
 		default:
 			whoops("cannot apply this type to any value");
 	}
+
+	return NULL;
 }
 
 // function to evaluate a branch of the abstract syntax tree

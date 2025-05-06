@@ -36,4 +36,6 @@ Stack *Stack_delete(Stack *stack, size_t index) {
 	// change the length of the stack to reflect the updated contents
 	stack->length--;
 	stack = realloc(stack, sizeof(Stack) + stack->length * sizeof(void*));
+
+	return stack;
 }
