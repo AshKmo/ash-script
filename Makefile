@@ -1,13 +1,10 @@
 CFLAGS = -I modules/Stack/ -I modules/String/
 
 ash-script : main.o Stack.o String.o
-	$(CC) $(CFLAGS) -o bin/ash-script -lm build/*
+	$(CC) $(CFLAGS) -o build/ash-script -lm build/*.o
 
 debug : CFLAGS += -g
 debug : ash-script
-
-wasm : main.o Stack.o String.o
-	$(CC) $(CFLAGS) -o wasm/ash-script.wasm -lm build/*
 
 main.o : main.c
 	$(CC) $(CFLAGS) -c -o build/main.o main.c
@@ -19,4 +16,4 @@ String.o : modules/String/String.c
 	$(CC) $(CFLAGS) -c -o build/String.o modules/String/String.c
 
 clean :
-	rm -f bin/* build/* wasm/ash-script.wasm
+	rm -f bin/* build/*

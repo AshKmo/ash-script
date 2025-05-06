@@ -2120,12 +2120,8 @@ void seed_rng() {
 // main procedure executed when the program is run
 int main(int argc, char *argv[]) {
 	// make sure that the user has supplied a script file to execute
-	if (argc < 2) {
+	if (argc < 3) {
 		whoops("please use one of the sub-commands 'run' or 'eval'.");
-	}
-
-	if (argc == 2) {
-		whoops("please provide an argument to the sub-command.");
 	}
 
 	if (argc > 3) {
