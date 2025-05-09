@@ -14,7 +14,7 @@
 #include <time.h>
 #include <stdlib.h>
 
-// import additional libraries
+// import additional modules
 #include "String.h"
 #include "Stack.h"
 

@@ -1,4 +1,4 @@
-// library that adds a String type for easy management of dynamically-allocated string values that may or may not have null characters in them
+// module that adds a String type for easy management of dynamically-allocated string values that may or may not have null characters in them
 
 #include <stdbool.h>
 #include <stdio.h>
