@@ -766,6 +766,7 @@ Stack *tokenise(String *script, Stack **heap) {
 
 		// if we're in a comment then there's not much else to do
 		if (comment) {
+			escaped = false;
 			continue;
 		}
 
