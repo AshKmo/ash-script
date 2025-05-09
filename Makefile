@@ -16,4 +16,4 @@ String.o : modules/String/String.c
 	$(CC) $(CFLAGS) -c -o build/String.o modules/String/String.c
 
 clean :
-	rm -f bin/* build/*
+	rm -f build/*

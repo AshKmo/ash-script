@@ -1,5 +1,3 @@
-// reusable component that adds a String type for easy management of dynamically-allocated string values that may or may not have null characters in them
-
 #ifndef STRING_H
 #define STRING_H
 

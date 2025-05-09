@@ -1,3 +1,5 @@
+// library that adds a String type for easy management of dynamically-allocated string values that may or may not have null characters in them
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -5,7 +7,7 @@
 
 #include "String.h"
 
-// function to allocate memory for a new String
+// function to make and initialise a new String
 String *String_new(size_t length) {
 	String *new_string = malloc(sizeof(String) + length * sizeof(char));
 	new_string->length = length;

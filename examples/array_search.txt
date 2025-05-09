@@ -8,7 +8,7 @@ let Track (name => location => {
 });
 
 # this is an implementation of a very basic array class #
-let Array (? => {
+let Array (() => {
 	let self {
 		let length 0;
 
@@ -57,10 +57,9 @@ let add_tracks (tracks => {
 	do (tracks.push (Track "Sweet Caroline" "sounds/20-Sweet-Caroline.wav"));
 });
 
-let main (? => {
+let main (() => {
 	# make a new array for the tracks #
-	# this calls the Array constructor with a null value ('?'), since it doesn't accept any arguments #
-	let tracks (Array ?);
+	let tracks (Array());
 
 	do (add_tracks tracks);
 
@@ -78,4 +77,4 @@ let main (? => {
 	};
 });
 
-do (main ?);
+do (main());

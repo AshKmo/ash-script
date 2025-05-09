@@ -39,7 +39,7 @@ A slight downside to this approach is that shebangs must have an additional hash
 ### Data types
 ash-script supports a number of different data types. The complete list of all data types are as follows:
 
-#### Null (`?`)
+#### Null (`()`)
 Represents a null value.
 
 #### Number (`4`, `-3`, `3.14`, `-2.7`)
@@ -55,7 +55,7 @@ Represents a series of characters of a certain length. In declaration, the follo
 #### Scope (`{let x 3; let "Bob" "a person"; let 0 "the first value";}`)
 The current scope of a sequence becomes, by default, the result of the evaluation of said sequence, allowing for the manipulation of scopes as data. Scopes are ash-script's version of dictionaries, arrays and objects.
 
-#### Closure (`x => x * 3`, `? => {print "You called me\n";}`, `x => y => x * y`)
+#### Closure (`x => x * 3`, `() => {print "You called me\n";}`, `x => y => x * y`)
 Represents a function that accepts a single argument and that contains the scopes enclosing it. Behaves very similarly to first-class functions in other languages, and is created in a very similar fashion to JavaScript's arrow functions.
 
 ### Sequences
@@ -124,8 +124,20 @@ Accepts two arguments, the first of which names a variable within an enclosing s
 #### `mut`
 Accepts three arguments, the first of which must evaluate to a Scope object that will then be updated such that the key described by the evaluation of the second argument will map to the evaluation of the third argument.
 
+#### `unmap`
+Accepts two arguments, the first of which must evaluate to a Scope object that will then be updated such that the key described by the evaluation of the second argument will no longer map to its value.
+
 #### `edit`
 Accepts three arguments, the first of which must evaluate to a Scope object that will then be updated such that the key described by the second argument (without evaluation) will map to the evaluation of the third argument.
+
+#### `delete`
+Accepts two arguments, the first of which must evaluate to a Scope object that will then be updated such that the key described by the second argument (without evaluation) will no longer map to its value.
+
+#### `keys`
+Accepts two arguments. The first argument must evaluate to a Scope from which each key (except property names) will be taken. The second argument must evaluate to a Closure object to which each key will be applied, in order of its addition to the Scope.
+
+#### `values`
+Accepts two arguments. The first argument must evaluate to a Scope from which each value will be taken. The second argument must evaluate to a Closure object to which each value will be applied, in order of its addition to the Scope.
 
 ### Operations
 ash-script also supports a variety of operations:
@@ -141,6 +153,9 @@ Evaluates to the value in the scope mapped to the key matching `y` (without eval
 
 #### Equality (`x == y`)
 Evaluates to an integer number 1 if the evaluations of `x` and `y` are both of comparable types and are equal in value. Otherwise, it evaluates to an integer number 0. Every type is comparable except for Closure.
+
+#### Likeness (`x <>= y`)
+Evaluates to an integer number 1 if the evaluations of `x` and `y` are of the same type. Otherwise, it evaluates to an integer number 0.
 
 #### Inequality (`x != y`)
 Same as the equality operator, but with the inverted result.

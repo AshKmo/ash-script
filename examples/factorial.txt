@@ -9,7 +9,7 @@ let factorial_iterative (x => {
 
 	if (x < 0) {
 		whoops "Cannot get the factorial of a negative number or a non-integer\n";
-		set result ?;
+		set result ();
 	};
 
 	return result;
@@ -21,7 +21,7 @@ let factorial_recursive (x => {
 		whoops "Cannot get the factorial of a negative number or a non-integer\n";
 	};
 
-	let result ?;
+	let result ();
 
 	if (x == 0) {
 		set result 1;

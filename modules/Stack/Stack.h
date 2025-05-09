@@ -1,5 +1,3 @@
-// reusable component that adds a Stack type that can dynamically grow and shrink as items are pushed to and popped from it
-
 #ifndef STACK_H
 #define STACK_H
 

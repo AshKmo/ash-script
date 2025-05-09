@@ -1,10 +1,12 @@
+// library that adds a Stack type that can dynamically grow and shrink as items are pushed to and popped from it
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
 
 #include "Stack.h"
 
-// function to allocate memory for a new Stack
+// function to make and initialise a new Stack
 Stack *Stack_new() {
 	Stack *new_stack = malloc(sizeof(Stack));
 	new_stack->length = 0;
