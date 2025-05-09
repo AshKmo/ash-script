@@ -1789,6 +1789,9 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						while (value_is_truthy(evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap))) {
 							// evaluate the action
 							evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+
+							// perform early garbage collection to avoid memory leaks within long loops
+							garbage_collect(NULL, ast_root, call_stack, scopes_stack, heap);
 						}
 					}
 
