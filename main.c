@@ -180,7 +180,6 @@ Number* perform_numeric_operation(OperationType operation_type, Number *number_a
 	// the result should usually be a floating-point value if either operand is one already
 	result->is_double = number_a->is_double || number_b->is_double;
 
-
 	// most of these operations follow the same format:
 	// if one of the operands is floating-point, then perform the operation using the appropriate property for each number (value_double or value_long) depending on the type of number it is
 	// otherwise, just perform the operation using value_long for both numbers
@@ -587,21 +586,26 @@ void print_value(Element *element, int indentation, bool literal) {
 				putchar('{');
 				putchar('\n');
 
+				// iterate through each statement in the sequence and print it
 				for (size_t i = 0; i < sequence->length; i++) {
 					Stack *statement = sequence->content[i];
 
+					// correctly indent each line of the Scope
 					for (int i = 0; i < indentation + 1; i++) {
 						putchar('\t');
 					}
 
+					// iterate through each Element in the statement and print it
 					for (size_t i = 0; i < statement->length; i++) {
 						print_value(statement->content[i], indentation + 1, true);
 						putchar(' ');
 					}
+
 					putchar(';');
 					putchar('\n');
 				}
 
+				// correctly indent the last line of the Sequence
 				for (int i = 0; i < indentation; i++) {
 					putchar('\t');
 				}
@@ -616,14 +620,17 @@ void print_value(Element *element, int indentation, bool literal) {
 
 				putchar('(');
 				print_value(operation->element_a, indentation, true);
+
+				// since we only get to print Operations if we're debugging the parsing logic, it's good enough to just print a placeholder indicating which operation it is
 				printf(" [%d] ", operation->type);
+
 				print_value(operation->element_b, indentation, true);
 				putchar(')');
 			};
 			break;
 
 		case ELEMENT_CLOSURE:
-			// Closures can't easily be represented due to their Scope-containing nature, so we're just going to have to print a placeholder
+			// Closures can't easily be represented in text due to their Scope-containing nature, so just print a placeholder
 			fputs("[=>]", stdout);
 			break;
 
@@ -855,8 +862,6 @@ Stack *tokenise(String *script, Stack **heap) {
 
 				case '-':
 					// dashes can indicate the start of a negative number but otherwise they are operators
-					// this is because I don't want to implement unary operations as well
-
 					if (i < script->length - 1 && isdigit(script->content[i + 1])) {
 						new_type = ELEMENT_NUMBER;
 					} else {
@@ -934,8 +939,8 @@ Stack *tokenise(String *script, Stack **heap) {
 						// make the new empty operation element
 						Operation *operation = Operation_new(OPERATION_JUXTAPOSITION, NULL, NULL);
 
-						// match the new operator to its operation
-						// I apologise for this ugly monstrosity but it's necessary because C can't switch-case with strings
+						// match the new operator to its operation type
+						// I apologise for this ugly monstrosity but it's necessary because C can't concisely switch-case with entire strings
 						if (String_is(current_value, "+")) {
 							operation->type = OPERATION_ADDITION;
 						} else if (String_is(current_value, "-")) {
@@ -2365,11 +2370,17 @@ int main(int argc, char *argv[]) {
 			whoops("cannot read this script file");
 		}
 
+		// seed the random number generation
 		seed_rng();
 	} else if (strcmp(argv[1], "eval") == 0) {
 		// if the 'eval' command was used, use the third argument as the code to evaluate
 		size_t length = strlen(argv[2]);
 		script = String_new(length);
+
+		// seed the random number generation
+		seed_rng();
+
+		// copy the contents of the third argument into the script string
 		memcpy(script->content, argv[2], length);
 	} else {
 		puts(argv[1]);
