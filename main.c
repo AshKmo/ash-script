@@ -1060,6 +1060,10 @@ Stack *tokenise(String *script, Stack **heap) {
 
 // function to handle the construction of a hierarchy of operations from a list of tokens
 Element *operatify(Stack *expression, size_t start, size_t end, Stack **heap) {
+	if (start - end <= 0) {
+		whoops("not enough operands");
+	}
+
 	// if there is only one element in the expression, then it's the return value
 	if (end - start == 1) {
 		return expression->content[start];
@@ -1167,6 +1171,10 @@ Element *construct_expression(Stack *tokens, size_t *i, Stack **heap) {
 					expression = Stack_push(expression, construct_expression(tokens, i, heap));
 					break;
 
+				case ELEMENT_TERMINATOR:
+					whoops("statement terminator inside expression (maybe you misplaced a bracket, brace or semicolon?)");
+					break;
+
 				default:
 					// everything else should just be inserted into the expression as an operator or value
 					expression = Stack_push(expression, current_token);
@@ -1207,10 +1215,6 @@ Element *construct_sequence(Stack *tokens, size_t *i, Stack **heap) {
 
 		// if we've come across a closing brace then it's the end of the sequence
 		if (current_token->type == ELEMENT_BRACE && (uintptr_t)(current_token->value)) {
-			if (statement->length != 0) {
-				whoops("missing semicolon at end of statement");
-			}
-
 			// the loop will increment the position integer once after it exits so we're going to have to nudge it down so that the tokens after the bracket are not missed
 			(*i)--;
 
@@ -1253,6 +1257,11 @@ Element *construct_sequence(Stack *tokens, size_t *i, Stack **heap) {
 			}
 		}
 	}
+
+	if (statement->length != 0) {
+		whoops("statement not terminated (maybe you missed a bracket, brace or semicolon?)");
+	}
+
 
 	// the remaining fresh statement can be safely freed, since it has no useful contents
 	free(statement);
@@ -2072,6 +2081,10 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					case OPERATION_LTE:
 					case OPERATION_GTE:
 						{
+							if (operation->element_a == NULL || operation->element_b == NULL) {
+								whoops("too many operations");
+							}
+
 							// evaluate each operand to obtain the actual values we need to operate on
 							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
 							*call_stack = Stack_push(*call_stack, element_a);
