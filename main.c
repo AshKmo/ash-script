@@ -1207,6 +1207,10 @@ Element *construct_sequence(Stack *tokens, size_t *i, Stack **heap) {
 
 		// if we've come across a closing brace then it's the end of the sequence
 		if (current_token->type == ELEMENT_BRACE && (uintptr_t)(current_token->value)) {
+			if (statement->length != 0) {
+				whoops("missing semicolon at end of statement");
+			}
+
 			// the loop will increment the position integer once after it exits so we're going to have to nudge it down so that the tokens after the bracket are not missed
 			(*i)--;
 

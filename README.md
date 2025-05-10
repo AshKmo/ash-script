@@ -83,7 +83,7 @@ Accepts one argument, which it evaluates immediately. Ceases execution of the cu
 Prints to the console a text representation of the evaluations of each of its arguments, from left to right.
 
 #### `whoops`
-Identical to `print`, but also causes the program to immediately crash and cease execution
+Identical to `print`, but also causes the program to immediately cease execution and crash.
 
 #### `rand`
 Accepts a single argument and sets the variable named by said argument to a random floating-point number with a value n such that 0 < n <= 1.
