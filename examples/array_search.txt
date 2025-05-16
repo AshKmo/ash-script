@@ -1,13 +1,13 @@
-# this example is a variation of task 7.3P Array Search #
+[ this example is a variation of task 7.3P Array Search ]
 
-# this is the closest thing that ash-script has to a class #
-# it's a function that accepts a name and a location and returns a Scope object that contains these properties #
+[ this is the closest thing that ash-script has to a class ]
+[ it's a function that accepts a name and a location and returns a Scope object that contains these properties ]
 let Track (name => location => {
 	let name name;
 	let location location;
 });
 
-# this is an implementation of a very basic array class #
+[ this is an implementation of a very basic array class ]
 let Array (() => {
 	let self {
 		let length 0;
@@ -22,7 +22,7 @@ let Array (() => {
 	return self;
 });
 
-# a basic searching function that finds the index of a track based on its name #
+[ a basic searching function that finds the index of a track based on its name ]
 let search_for_track_name (tracks => query => {
 	let result -1;
 

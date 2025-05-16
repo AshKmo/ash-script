@@ -13,27 +13,26 @@ Run `./build/ash-script run <script-file>` to execute any valid ash-script file.
 ash-script is an interpreted, dynamically-typed, garbage-collected general-purpose programming language.
 
 ### Comments
-In ash-script, comments can be written between two hash marks, like so:
+In ash-script, comments can be written between two square brackets, like so:
 
 ```
-# this is a comment #
+[ this is a comment ]
 ```
 
-Anything between and including two hash marks is considered part of a comment and is not executed as code. Thus, multiline comments are also possible:
+Anything between and including two square brackets is considered part of a comment and is not executed as code. Thus, multiline comments are also possible:
 
 ```
-#
-This is a
-multiline
-comment.
-#
+[
+    This is a
+    multiline
+    comment.
+]
 ```
 
-A slight downside to this approach is that shebangs must have an additional hash mark placed on the line after them:
-
+An initial shebang line is also automatically skipped.
 ```
 #!/build/ash-script run
-#
+print "This script can be executed directly";
 ```
 
 ### Data types

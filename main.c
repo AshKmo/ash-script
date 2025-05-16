@@ -732,13 +732,25 @@ Stack *tokenise(String *script, Stack **heap) {
 
 	// whether we are in an escape sequence or not
 	bool escaped = false;
-	// whether we are in a comment or not
-	bool comment = false;
+
 	// whether we are inside a string or not
 	bool in_string = false;
 
+	// how many layers of comments we are in
+	bool comment = 0;
+
+	// variable to store the index of the current character being handled by the tokeniser
+	size_t i = 0;
+
+	// if the first two characters are '#' and '!', treat the entire line as a shebang and skip over it
+	if (script->length > 1 && script->content[0] == '#' && script->content[1] == '!') {
+		for (; i < script->length && script->content[i] != '\n'; i++) {
+			;
+		}
+	}
+
 	// iterate through each character in the script, plus an extra non-existent newline to keep the tokenising logic simple
-	for (size_t i = 0; i <= script->length; i++) {
+	for (; i <= script->length; i++) {
 		// stores the implied element type of the element at the current character
 		ElementType new_type;
 
@@ -759,13 +771,18 @@ Stack *tokenise(String *script, Stack **heap) {
 		}
 
 		// if there's a hash mark and we're not currently in an escape sequence it's probably the start or end of a comment
-		if (c == '#' && !escaped) {
-			comment = !comment;
+		if (c == '[' && !escaped) {
+			comment++;
+			continue;
+		}
+
+		if (c == ']' && !escaped) {
+			comment--;
 			continue;
 		}
 
 		// if we're in a comment then there's not much else to do
-		if (comment) {
+		if (comment > 0) {
 			escaped = false;
 			continue;
 		}

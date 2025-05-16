@@ -1,4 +1,4 @@
-# set the initial count for the number of times " silly" should be printed #
+[ set the initial count for the number of times " silly" should be printed ]
 let count 5;
 
 print "What is your name? ";
