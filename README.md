@@ -45,6 +45,8 @@ Represents a null value.
 #### Number (`4`, `-3`, `3.14`, `-2.7`)
 Represents either an integer or a floating-point number. A leading `-` signifies a negative number (in this case, the `-` is not an operator).
 
+**NOTE**: ash-script has no unary operators. The `-` at the start of a negative number is interpreted as part of the number and not as its own operator. If you need to subtract a constant from something, add a space between the `-` and the constant.
+
 #### String (`"Hello, world!"`)
 Represents a series of characters of a certain length. In declaration, the following escape sequences can be used:
 - `\n`: newline
@@ -162,6 +164,8 @@ Same as the equality operator, but with the inverted result.
 
 #### Arithmetic operations (`x + y`, `x - y`, `x * y`, `x / y`, `x % y`, `x ** y`)
 Pretty self-explanatory.
+
+**NOTE**: ash-script has no unary operators. The `-` at the start of a negative number is interpreted as part of the number and not as its own operator. If you need to subtract a constant from something, add a space between the `-` and the constant.
 
 #### Comparison operations (`x < y`, `x > y`, `x <= y`, `x >= y`)
 Also pretty self-explanatory.

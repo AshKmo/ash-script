@@ -212,7 +212,7 @@ Number* perform_numeric_operation(OperationType operation_type, Number *number_a
 			}
 			break;
 		case OPERATION_DIVISION:
-			// if the denominumber_ator is zero or there is no clean integer division, make the result floating-point
+			// if the denomintor is zero or there is no clean integer division, make the result floating-point
 			if (number_b->value_long == 0 || number_a->value_long % number_b->value_long != 0) {
 				result->is_double = true;
 			}
@@ -222,11 +222,11 @@ Number* perform_numeric_operation(OperationType operation_type, Number *number_a
 				double double_a = number_a->is_double ? number_a->value_double : number_a->value_long;
 				double double_b = number_b->is_double ? number_b->value_double : number_b->value_long;
 
-				// if the denominumber_ator is zero, use the appropriate infinity value
+				// if the denominator is zero, use the appropriate infinity value
 				// otherwise, perform regular floating-point division
 				result->value_double = double_b == 0 ? (double_a == 0 ? NAN : double_a > 0 ? INFINITY : -INFINITY) : double_a / double_b;
 			} else {
-				// if the two values are normal integers and the denominumber_ator isn't zero, just use integer division
+				// if the two values are normal integers and the denominator isn't zero, just use integer division
 				result->value_long = number_a->value_long / number_b->value_long;
 			}
 			break;
@@ -1172,6 +1172,7 @@ Element *construct_expression(Stack *tokens, size_t *i, Stack **heap) {
 					break;
 
 				case ELEMENT_TERMINATOR:
+					// if there's a statement terminator in the middle of an expression, the user has probably stuffed up their code somehow
 					whoops("statement terminator inside expression (maybe you misplaced a bracket, brace or semicolon?)");
 					break;
 
@@ -1258,10 +1259,10 @@ Element *construct_sequence(Stack *tokens, size_t *i, Stack **heap) {
 		}
 	}
 
+	// if there's junk left over in the statement that wasn't properly terminated, the user has probably stuffed up their code somehow
 	if (statement->length != 0) {
 		whoops("statement not terminated (maybe you missed a bracket, brace or semicolon?)");
 	}
-
 
 	// the remaining fresh statement can be safely freed, since it has no useful contents
 	free(statement);
