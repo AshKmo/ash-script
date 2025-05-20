@@ -737,7 +737,7 @@ Stack *tokenise(String *script, Stack **heap) {
 	bool in_string = false;
 
 	// how many layers of comments we are in
-	bool comment = 0;
+	int comment = 0;
 
 	// variable to store the index of the current character being handled by the tokeniser
 	size_t i = 0;

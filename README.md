@@ -19,7 +19,7 @@ In ash-script, comments can be written between two square brackets, like so:
 [ this is a comment ]
 ```
 
-Anything between and including two square brackets is considered part of a comment and is not executed as code. Thus, multiline comments are also possible:
+Anything between and including two enclosing square brackets is considered part of a comment and is not executed as code. Thus, multiline comments are also possible:
 
 ```
 [
@@ -29,10 +29,21 @@ Anything between and including two square brackets is considered part of a comme
 ]
 ```
 
-An initial shebang line is also automatically skipped.
+Comments can be nested:
+
 ```
-#!/build/ash-script run
-print "This script can be executed directly";
+[
+    [ this is a comment inside of a comment ]
+    print "I'm inside a comment so I won't be printed.\n";
+]
+
+print "I will be though.\n";
+```
+
+An initial shebang line is also automatically skipped:
+```
+#!/bin/ash-script run
+print "Hello, world!\n";
 ```
 
 ### Data types
@@ -47,14 +58,14 @@ Represents either an integer or a floating-point number. A leading `-` signifies
 **NOTE**: ash-script has no unary operators. The `-` at the start of a negative number is interpreted as part of the number and not as its own operator. If you need to subtract a constant from something, add a space between the `-` and the constant.
 
 #### String (`"Hello, world!"`)
-Represents a series of characters of a certain length. In declaration, the following escape sequences can be used:
+Represents a series of characters. In declaration, the following escape sequences can be used:
 - `\n`: newline
 - `\r`: carriage return
 - `\t`: tab
-- `\xHH`: the character with hex value HH
+- `\xHH`: the character with hex value HH. Note that this differs from C in that only one pair of hex digits is read and hence this sequence can only represent a single character
 
 #### Scope (`{let x 3; let "Bob" "a person"; let 0 "the first value";}`)
-The current scope of a sequence becomes, by default, the result of the evaluation of said sequence, allowing for the manipulation of scopes as data. Scopes are ash-script's version of dictionaries, arrays and objects.
+The current local scope of a sequence becomes, by default, the result of the evaluation of said sequence, allowing for scopes to be manipulated as data. Scopes are ash-script's implementation of dictionaries, arrays and objects.
 
 #### Closure (`x => x * 3`, `() => {print "You called me\n";}`, `x => y => x * y`)
 Represents a function that accepts a single argument and that contains the scopes enclosing it. Behaves very similarly to first-class functions in other languages, and is created in a very similar fashion to JavaScript's arrow functions.
@@ -71,7 +82,7 @@ In this instance, `print` is the command name and `"Hello, world!\n"` is a strin
 The complete list of commands are as follows:
 
 #### `do`
-Evaluates all arguments passed to it, e.g.
+Evaluates all arguments in order from left to right, e.g.
 
 ```
 do {print "Hello, ";} {print "world!\n";};
@@ -103,13 +114,13 @@ Accepts any number of arguments, and iterates through each of them two-by-two. F
 
 ```
 if (x == 3) {
-    print "x is 3\n";
+    print "x is three\n";
 } (x == 4) {
-    print "x is 4\n";
+    print "x is four\n";
 } (x == 5) {
-    print "x is 5\n";
+    print "x is five\n";
 } {
-    print "x is neither 3, 4, nor 5\n";
+    print "x is neither three, four, nor five\n";
 };
 ```
 
@@ -155,11 +166,11 @@ Evaluates to the value in the scope mapped to the key matching `y` (without eval
 #### Equality (`x == y`)
 Evaluates to an integer number 1 if the evaluations of `x` and `y` are both of comparable types and are equal in value. Otherwise, it evaluates to an integer number 0. Every type is comparable except for Closure.
 
+#### Inequality (`x != y`)
+Same as the equality operator, but with the opposite result.
+
 #### Likeness (`x <>= y`)
 Evaluates to an integer number 1 if the evaluations of `x` and `y` are of the same type. Otherwise, it evaluates to an integer number 0.
-
-#### Inequality (`x != y`)
-Same as the equality operator, but with the inverted result.
 
 #### Arithmetic operations (`x + y`, `x - y`, `x * y`, `x / y`, `x % y`, `x ** y`)
 Pretty self-explanatory.
@@ -176,7 +187,7 @@ Not as self-explanatory, but still very consistent with how C implements them.
 Works very similarly to the JavaScript logical operations but with an additional XOR operation (`^^`) that returns an integer number 1 if the truthiness of the two values differ, and 0 otherwise.
 
 #### Substring operations (`</`, `>/`)
-These operations require that `x` be a string and `y` be an integer number. `x </ y` evaluates to a string containing only the first `y` characters of the string `x`, whilse `x >/ y` evaluates to a string containing everything but.
+These operations require that `x` be a string and `y` be an integer number. `x </ y` evaluates to a string containing only the first `y` characters of the string `x`, whilst `x >/ y` evaluates to a string containing the entirety of the string `x` except the first `y` characters.
 
 #### Closure (`x => y`)
 Evaluates to a new closure that, when applied to a value, will be able to access said value by the variable name `x` and will evaluate to the evaluation of `y`, which will be evaluated when the closure is applied to a value.
