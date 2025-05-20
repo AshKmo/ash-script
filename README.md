@@ -4,7 +4,7 @@ A basic interpreter for a simple programming language called ash-script, written
 ## Compiling
 First of all, please keep in mind that ash-script has only been tested on a Linux laptop and on Ed Discussion. I've tried to make the code relatively portable, but otherwise there are no guarantees.
 
-Clone this repository, then make a new directory called 'build' next to this file. Ensure make and gcc are installed, then run `make` to compile the interpreter. Once compiled, a new binary called 'ash-script' will be placed in the 'build' directory.
+Clone this repository, then make a new directory called 'build' next to this file. Ensure `make` and `gcc` are installed, then run `make` to compile the interpreter. Once compiled, a new binary called 'ash-script' will be placed in the 'build' directory.
 
 ## Running
 Run `./build/ash-script run <script-file>` to execute any valid ash-script file. For instance, run `./build/ash-script run examples/pi.txt` to execute the Pi calculation example. If you want to execute a script directly, run `./build/ash-script eval <script>`. For example, run `./build/ash-script eval 'print "Hello, world!\n";'` to directly run a Hello World program.
