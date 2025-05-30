@@ -1,9 +1,15 @@
+[ this is a limited rendition of Conway's Game of Life, implemented purely in ash-script ]
+[ since Conway's Game of Life is Turing-complete, the existence of this functioning program proves that ash-script as a programming language is also Turing-complete ]
+[ however, since the interpreter for this language is very unoptimised, the simulation is also very slow ]
+
 let settings {
 	let world {
 		let width 60;
 		let height 25;
 	};
 
+	[ this property defines the initial state of the game, which the simulation will mutate as generations pass ]
+	[ any character that is not a space is counted as a live cell, with all other cells being counted as dead ]
 	let initialState {
 		let 0	"                                                            ";
 		let 1	"                                                            ";
@@ -16,9 +22,9 @@ let settings {
 		let 8	"                                                            ";
 		let 9	"                                                            ";
 		let 10	"                                                            ";
-		let 11 	"                     a                                      ";
-		let 12	"                       a                                    ";
-		let 13	"                    aa  aaa                                 ";
+		let 11 	"                     @                                      ";
+		let 12	"                       @                                    ";
+		let 13	"                    @@  @@@                                 ";
 		let 14	"                                                            ";
 		let 15	"                                                            ";
 		let 16	"                                                            ";
@@ -49,76 +55,82 @@ do {
 			set x (x + 1);
 		};
 
-		print "\n";
-
 		set y (y + 1);
 	};
 };
 
-do {
-	let go 1;
+let go 1;
 
-	while go {
-		do {
-			let newWorld {};
+while go {
+	let newWorld {};
 
-			print "\x1Bc";
+	print "\x1Bc";
 
-			let y 0;
+	let y 0;
 
-			while (y < settings.world.height) {
-				let x 0;
+	while (y < settings.world.height) {
+		let x 0;
 
-				mut newWorld y {};
-
-				while (x < settings.world.width) {
-					let total 0;
-
-					let total (total + (world (y - 1) (x - 1) || 0));
-					let total (total + (world (y - 1) x || 0));
-					let total (total + (world (y - 1) (x + 1) || 0));
-					let total (total + (world y (x - 1) || 0));
-					let total (total + (world y (x + 1) || 0));
-					let total (total + (world (y + 1) (x - 1) || 0));
-					let total (total + (world (y + 1) x || 0));
-					let total (total + (world (y + 1) (x + 1) || 0));
-
-					if (world y x) {
-						mut (newWorld y) x (total > 1 && total < 4);
-					} {
-						mut (newWorld y) x (total == 3);
-					};
-
-					if (newWorld y x) {
-						print "8";
-					} {
-						print " ";
-					};
-
-					set x (x + 1);
-				};
-
-				print "|";
-
-				print "\n";
-
-				set y (y + 1);
+		while (x < settings.world.width) {
+			if (world y x) {
+				print "@";
+			} {
+				print " ";
 			};
 
-			do {
-				let x 0;
-
-				while (x < settings.world.width) {
-					print "-";
-					set x (x + 1);
-				};
-			};
-
-			print "#\n\nTo step the simulation, press Enter. To exit, type any character and press Enter.\n";
-
-			set world newWorld;
+			set x (x + 1);
 		};
 
-		set go ({input x; return x;} == "");
+		print "|\n";
+
+		set y (y + 1);
 	};
+
+	let x 0;
+
+	while (x < settings.world.width) {
+		print "-";
+		set x (x + 1);
+	};
+
+	print "#\n\nTo step the simulation, press Enter. To exit, type any character and press Enter.\n";
+
+	set go ({input x; return x;} == "");
+
+	if go {
+		print "Processing... ";
+	};
+
+	set y 0;
+
+	while (go && y < settings.world.height) {
+		let x 0;
+
+		mut newWorld y {};
+
+		while (x < settings.world.width) {
+			let total 0;
+
+			let total (total + (world (y - 1) (x - 1) || 0));
+			let total (total + (world (y - 1) x || 0));
+			let total (total + (world (y - 1) (x + 1) || 0));
+			let total (total + (world y (x - 1) || 0));
+			let total (total + (world y (x + 1) || 0));
+			let total (total + (world (y + 1) (x - 1) || 0));
+			let total (total + (world (y + 1) x || 0));
+			let total (total + (world (y + 1) (x + 1) || 0));
+
+			if (world y x) {
+				mut (newWorld y) x (total > 1 && total < 4);
+			} {
+				mut (newWorld y) x (total == 3);
+			};
+
+			set x (x + 1);
+		};
+
+		set y (y + 1);
+	};
+
+	set world newWorld;
 };

@@ -509,6 +509,7 @@ void print_value(Element *element, int indentation, bool literal) {
 			break;
 
 		case ELEMENT_VARIABLE:
+			// print the name of the variable as it is
 			String_print(element->value);
 			break;
 
@@ -526,6 +527,7 @@ void print_value(Element *element, int indentation, bool literal) {
 						putchar('\\');
 					}
 
+					// re-create some of the escape sequences
 					if (string->content[i] == '\n') {
 						putchar('\\');
 						putchar('n');
@@ -1447,8 +1449,8 @@ void set_variable(Element *key, Element *value, Element *scopes, bool local_only
 	} else {
 		bool found = false;
 
-		// search through all scopes from oldest to youngest until a scope is found
-		for (size_t i = 0; i < scope_collection->length && !found; i++) {
+		// search through all scopes from youngest to oldest until a scope is found
+		for (size_t i = scope_collection->length - 1; i < scope_collection->length && !found; i--) {
 			scope = scope_collection->content[i];
 
 			// if this scope has the key, select it
@@ -2388,6 +2390,9 @@ void seed_rng() {
 
 // main procedure executed when the program is run
 int main(int argc, char *argv[]) {
+	// disable line buffering
+	setbuf(stdout, NULL);
+
 	// make sure that the user has supplied a script file to execute
 	if (argc < 3) {
 		whoops("please use one of the sub-commands 'run' or 'eval'.");
