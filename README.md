@@ -156,9 +156,10 @@ ash-script also supports a variety of operations:
 
 #### Juxtaposition (`x y`)
 This operation evaluates to one of many different things depending on the type of the first element involved:
-- Scope: the value in the scope mapped to the key matching the evaluation of `y`
+- Scope: the value in the scope mapped to the key matching the evaluation of `y`, or a Null value if no such key is found
 - Closure: the application of the closure to the evaluation of `y`
 - String: the concatenation of `x` and `y`, which must both be strings
+- Null: the same Null value provided
 
 #### Access (`x . y`)
 Evaluates to the value in the scope mapped to the key matching `y` (without evaluation).
