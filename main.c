@@ -771,7 +771,7 @@ Stack *tokenise(String *script, Stack **heap) {
 		}
 
 		// if there's a hash mark and we're not currently in an escape sequence it's probably the start or end of a comment
-		if (c == '[' && !escaped) {
+		if (c == '[' && !escaped && !in_string) {
 			comment++;
 			continue;
 		}
@@ -1500,11 +1500,7 @@ Element *juxtapose(Element *element_a, Element *element_b, Element *ast_root, St
 			{
 				Element *result = get_scope_mapping(element_a->value, element_b);
 				if (result == NULL) {
-					// if no result is found, print the key and an error message
-					putchar('\n');
-					print_value(element_b, 0, true);
-					putchar('\n');
-					whoops("no such key in this scope");
+					result = make(ELEMENT_NULL, NULL, heap);
 				}
 				return result;
 			};
@@ -1580,7 +1576,11 @@ Element *juxtapose(Element *element_a, Element *element_b, Element *ast_root, St
 			};
 			break;
 
+		case ELEMENT_NULL:
+			return element_a;
+
 		default:
+			printf("%d\n", element_a->type);
 			whoops("cannot apply this type to any value");
 	}
 
@@ -1913,7 +1913,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						// evaluate the first argument to find the subject
 						Element *subject = evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap);
 						if (subject->type != ELEMENT_SCOPE) {
-							whoops("'mut' statement requires a scope object as the first argument");
+							whoops("'edit' statement requires a scope object as the first argument");
 						}
 
 						Element *property_name = statement->content[2];

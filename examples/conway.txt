@@ -1,0 +1,124 @@
+let settings {
+	let world {
+		let width 60;
+		let height 25;
+	};
+
+	let initialState {
+		let 0	"                                                            ";
+		let 1	"                                                            ";
+		let 2	"                                                            ";
+		let 3	"                                                            ";
+		let 4	"                                                            ";
+		let 5	"                                                            ";
+		let 6	"                                                            ";
+		let 7	"                                                            ";
+		let 8	"                                                            ";
+		let 9	"                                                            ";
+		let 10	"                                                            ";
+		let 11 	"                     a                                      ";
+		let 12	"                       a                                    ";
+		let 13	"                    aa  aaa                                 ";
+		let 14	"                                                            ";
+		let 15	"                                                            ";
+		let 16	"                                                            ";
+		let 17	"                                                            ";
+		let 18	"                                                            ";
+		let 19	"                                                            ";
+		let 20	"                                                            ";
+		let 21	"                                                            ";
+		let 22	"                                                            ";
+		let 23	"                                                            ";
+		let 24	"                                                            ";
+	};
+};
+
+let world {};
+
+do {
+	let y 0;
+
+	while (y < settings.world.height) {
+		mut world y {};
+
+		let x 0;
+
+		while (x < settings.world.width) {
+			mut (world y) x (settings.initialState y </ (x + 1) >/ x != " ");
+
+			set x (x + 1);
+		};
+
+		print "\n";
+
+		set y (y + 1);
+	};
+};
+
+do {
+	let go 1;
+
+	while go {
+		do {
+			let newWorld {};
+
+			print "\x1Bc";
+
+			let y 0;
+
+			while (y < settings.world.height) {
+				let x 0;
+
+				mut newWorld y {};
+
+				while (x < settings.world.width) {
+					let total 0;
+
+					let total (total + (world (y - 1) (x - 1) || 0));
+					let total (total + (world (y - 1) x || 0));
+					let total (total + (world (y - 1) (x + 1) || 0));
+					let total (total + (world y (x - 1) || 0));
+					let total (total + (world y (x + 1) || 0));
+					let total (total + (world (y + 1) (x - 1) || 0));
+					let total (total + (world (y + 1) x || 0));
+					let total (total + (world (y + 1) (x + 1) || 0));
+
+					if (world y x) {
+						mut (newWorld y) x (total > 1 && total < 4);
+					} {
+						mut (newWorld y) x (total == 3);
+					};
+
+					if (newWorld y x) {
+						print "8";
+					} {
+						print " ";
+					};
+
+					set x (x + 1);
+				};
+
+				print "|";
+
+				print "\n";
+
+				set y (y + 1);
+			};
+
+			do {
+				let x 0;
+
+				while (x < settings.world.width) {
+					print "-";
+					set x (x + 1);
+				};
+			};
+
+			print "#\n\nTo step the simulation, press Enter. To exit, type any character and press Enter.\n";
+
+			set world newWorld;
+		};
+
+		set go ({input x; return x;} == "");
+	};
+};
