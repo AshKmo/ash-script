@@ -98,7 +98,7 @@ Prints to the console a text representation of the evaluations of each of its ar
 Identical to `print`, but also causes the program to immediately cease execution and crash.
 
 #### `rand`
-Accepts a single argument and sets the variable named by said argument to a random floating-point number with a value n such that 0 < n <= 1.
+Accepts a single argument and creates a new variable, named by said argument, containing a random floating-point number with a value n such that 0 <= n < 1.
 
 #### `input`
 Accepts a single argument and sets the variable named by said argument to a string containing the user's input, which it receives from the console.

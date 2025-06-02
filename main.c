@@ -1683,7 +1683,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						result->value_double = random_number / (RAND_MAX + 1.0);
 
 						// make a new Element containing the new random number and store it in the variable specified
-						set_variable(key, make(ELEMENT_NUMBER, result, heap), scopes, false);
+						set_variable(key, make(ELEMENT_NUMBER, result, heap), scopes, true);
 					}
 
 					// the 'input' command waits for input from the user and then stores it in a variable
@@ -1880,11 +1880,15 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						// evaluate the second argument to find the key
 						Element *key = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
 
+						*call_stack = Stack_push(*call_stack, key);
+
 						// evaluate the third argument to find the value
 						Element *value = evaluate(statement->content[3], ast_root, call_stack, scopes_stack, heap);
 
 						// update the Scope with the new mapping
 						subject->value = set_scope_mapping(subject->value, key, value);
+
+						*call_stack = Stack_pop(*call_stack);
 					}
 
 					// the 'unmap' command removes a mapping between a key and a value in a Scope object
