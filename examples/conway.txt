@@ -10,6 +10,7 @@ let settings {
 
 	[ this property defines the initial state of the game, which the simulation will mutate as generations pass ]
 	[ any character that is not a space is counted as a live cell, with all other cells being counted as dead ]
+	[ the default setting for this property is a known 'methuselah' called "acorn" which was found by Charles Corderman ]
 	let initialState {
 		let 0	"                                                            ";
 		let 1	"                                                            ";
@@ -22,15 +23,15 @@ let settings {
 		let 8	"                                                            ";
 		let 9	"                                                            ";
 		let 10	"                                                            ";
-		let 11 	"                     @                                      ";
-		let 12	"                       @                                    ";
-		let 13	"                    @@  @@@                                 ";
+		let 11 	"                                                            ";
+		let 12	"                                                            ";
+		let 13	"                                                            ";
 		let 14	"                                                            ";
 		let 15	"                                                            ";
 		let 16	"                                                            ";
-		let 17	"                                                            ";
-		let 18	"                                                            ";
-		let 19	"                                                            ";
+		let 17	"                                  @                         ";
+		let 18	"                                    @                       ";
+		let 19	"                                 @@  @@@                    ";
 		let 20	"                                                            ";
 		let 21	"                                                            ";
 		let 22	"                                                            ";
@@ -69,11 +70,24 @@ while go {
 
 	print "\x1Bc";
 
+	let x 0;
+
 	let y 0;
+
+	[ print a border at the top edge of the map ]
+	print "#";
+	while (x < settings.world.width) {
+		print "-";
+		set x (x + 1);
+	};
+	print "#\n";
 
 	[ iterate through each cell and print it in a grid ]
 	while (y < settings.world.height) {
 		let x 0;
+
+		[ print a border at the leftmost edge of the map ]
+		print "|";
 
 		while (x < settings.world.width) {
 			[ an '@' represents an alive cell and a ' ' represents a dead cell ]
@@ -92,16 +106,19 @@ while go {
 		set y (y + 1);
 	};
 
-	let x 0;
+	set x 0;
 
 	[ print a border at the bottom edge of the map ]
+	print "#";
 	while (x < settings.world.width) {
 		print "-";
 		set x (x + 1);
 	};
+	print "#";
 
 	[ ask the user for the desired action ]
-	print "#\n\nTo step the simulation, press Enter. To exit, type any character and press Enter.\n";
+	print "\nTo step through the simulation, press Enter. To exit, type any character and press Enter.\n";
+	print "If you can't see all 4 borders of the world, try increasing the size of your terminal.\n";
 	set go ({input x; return x;} == "");
 
 	if go {
