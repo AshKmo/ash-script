@@ -12,7 +12,7 @@ let Array (() => {
 	let self {
 		let length 0;
 
-		# this function pushes an item to the end of an array #
+		[ this function pushes an item to the end of an array ]
 		let push (x => {
 			mut self (self.length) x;
 			edit self length (self.length + 1);
@@ -26,6 +26,7 @@ let Array (() => {
 let search_for_track_name (tracks => query => {
 	let result -1;
 
+	[ iterate through all tracks and set the result to the index of the track if a matching track is found ]
 	let i 0;
 	while (i < tracks.length) {
 		if ((tracks i).name == query) {
@@ -38,11 +39,13 @@ let search_for_track_name (tracks => query => {
 	return result;
 });
 
+[ procedure to print the details of a track to the console ]
 let print_track (track => {
 	print (track.name) "\n";
 	print (track.location) "\n";
 });
 
+[ procedure to print an array of tracks to the console ]
 let print_tracks (tracks => {
 	let i 0;
 	while (i < tracks.length) {
@@ -51,6 +54,7 @@ let print_tracks (tracks => {
 	};
 });
 
+[ procedure to add a collection of pre-defined tracks to a track array ]
 let add_tracks (tracks => {
 	do (tracks.push (Track "Cracklin' Rosie" "sounds/01-Cracklin-Rosie.wav"));
 	do (tracks.push (Track "Soolaimon" "sounds/06-Soolaimon.wav"));
@@ -58,18 +62,22 @@ let add_tracks (tracks => {
 });
 
 let main (() => {
-	# make a new array for the tracks #
+	[ make a new array for the tracks ]
 	let tracks (Array());
 
 	do (add_tracks tracks);
 
+	[ print the track details ]
 	do (print_tracks tracks);
 
+	[ ask the user for their search query ]
 	print "Enter the track name you wish to find: ";
 	input query;
 
+	[ search for the track ]
 	let result (search_for_track_name tracks query);
 
+	[ print the track name if the track is found, or an error message if one is not found ]
 	if (result < 0) {
 		print "Item not found\n";
 	} {
@@ -77,4 +85,5 @@ let main (() => {
 	};
 });
 
+[ execute the main function ]
 do (main());

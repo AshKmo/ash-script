@@ -2,11 +2,13 @@
 let factorial_iterative (x => {
 	let result 1;
 
+	[ multiply the result value by x and decrement it until x is 0 ]
 	while (x > 0) {
 		set result (result * x);
 		set x (x - 1);
 	};
 
+	[ if we've reached a negative x value, either the input was negative or the input had a fractional part, in which case a NaN value should be returned ]
 	if (x < 0) {
 		set result (0/0);
 	};
@@ -18,6 +20,9 @@ let factorial_iterative (x => {
 let factorial_recursive (x => {
 	let result ();
 
+	[ if the input is negative or will be negative at some point, return a NaN value ]
+	[ otherwise, if the input is 0, return 1 ]
+	[ otherwise, return the input multiplied by the factorial of its predecessor ]
 	if (x < 0) {
 		set result (0/0);
 	} (x == 0) {
@@ -29,8 +34,8 @@ let factorial_recursive (x => {
 	return result;
 });
 
-let n1 6;
-let n2 6;
+let n 6;
 
-print "The factorial of " n1 " is " (factorial_iterative n1) " according to the iterative algorithm\n";
-print "The factorial of " n2 " is " (factorial_recursive n2) " according to the recursive algorithm\n";
+[ print the results of both factorial algorithms when given the same input ]
+print "The factorial of " n " is " (factorial_iterative n) " according to the iterative algorithm\n";
+print "The factorial of " n " is " (factorial_recursive n) " according to the recursive algorithm\n";

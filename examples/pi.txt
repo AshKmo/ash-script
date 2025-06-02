@@ -6,6 +6,7 @@ let calculate_pi (precision => {
 
 	while (x < precision) {
 		[ calculate the left-point estimate for this x-value and add it to the total area ]
+		[ we need to multiply by 4 because we are integrating a semicircle, and the square root of 4 is 2, which is what we need to multiply the area by to get the area of the circle ]
 		set total (total + (4 * (precision - x) * (precision + x))**0.5);
 
 		[ shift to the next x-coordinate ]
@@ -13,7 +14,6 @@ let calculate_pi (precision => {
 	};
 
 	[ calculate Pi by dividing the area of a circle by the square of its radius ]
-	[ since we have only integrated a semicircle, the circle area would be twice the total ]
 	return (total / (precision * precision));
 });
 

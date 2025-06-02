@@ -51,6 +51,7 @@ do {
 		let x 0;
 
 		while (x < settings.world.width) {
+			[ the string slicing operator is used here to select the character, from the string at row y, associated with the current x value ]
 			mut (world y) x (settings.initialState y </ (x + 1) >/ x != " ");
 
 			set x (x + 1);
@@ -62,6 +63,7 @@ do {
 
 let go 1;
 
+[ continuously print the current state of the game, ask the user for their verdict, then update the state ]
 while go {
 	let newWorld {};
 
@@ -74,6 +76,7 @@ while go {
 		let x 0;
 
 		while (x < settings.world.width) {
+			[ an '@' represents an alive cell and a ' ' represents a dead cell ]
 			if (world y x) {
 				print "@";
 			} {
@@ -83,6 +86,7 @@ while go {
 			set x (x + 1);
 		};
 
+		[ print a border at the rightmost edge of the map ]
 		print "|\n";
 
 		set y (y + 1);
@@ -90,13 +94,14 @@ while go {
 
 	let x 0;
 
+	[ print a border at the bottom edge of the map ]
 	while (x < settings.world.width) {
 		print "-";
 		set x (x + 1);
 	};
 
+	[ ask the user for the desired action ]
 	print "#\n\nTo step the simulation, press Enter. To exit, type any character and press Enter.\n";
-
 	set go ({input x; return x;} == "");
 
 	if go {
@@ -122,6 +127,7 @@ while go {
 		while (x < settings.world.width) {
 			let total 0;
 
+			[ update the total number of alive neighbors based on whether each neighboring cell is alive or dead ]
 			let total (total + (world (y - 1) (x - 1) || 0));
 			let total (total + (world (y - 1) x || 0));
 			let total (total + (world (y - 1) (x + 1) || 0));
@@ -131,6 +137,8 @@ while go {
 			let total (total + (world (y + 1) x || 0));
 			let total (total + (world (y + 1) (x + 1) || 0));
 
+			[ if the current cell is alive, kill it unless it has 2 or 3 neighbors ]
+			[ otherwise, revive the cell if it has exactly 3 neighbors ]
 			if (world y x) {
 				mut (newWorld y) x (total > 1 && total < 4);
 			} {
