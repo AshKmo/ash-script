@@ -50,8 +50,7 @@ do {
 		let x 0;
 
 		while (x < settings.world.width) {
-			[mut (world y) x (settings.initialState y </ (x + 1) >/ x != " ");]
-			mut (world y) x ({rand z; return z;} < 0.5);
+			mut (world y) x (settings.initialState y </ (x + 1) >/ x != " ");
 
 			set x (x + 1);
 		};
