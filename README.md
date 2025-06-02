@@ -1,7 +1,7 @@
 # ash-script
 A basic interpreter for a simple programming language called ash-script, written for educational purposes.
 
-This code is available at the Github repository [AshKmo/cos10009-custom](https://github.com/AshKmo/cos10009-custom).
+This code, along with a proper rendering of this readme, is available on Github at [AshKmo/cos10009-custom](https://github.com/AshKmo/cos10009-custom).
 
 ## Compiling
 First of all, please keep in mind that ash-script has only been tested on a Linux laptop and on Ed Discussion. I've tried to make the code relatively portable, but otherwise there are no guarantees.
