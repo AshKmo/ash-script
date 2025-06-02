@@ -1770,6 +1770,8 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 							whoops("'writefile' command requires the first argument to be a string");
 						}
 
+						*call_stack = Stack_push(*call_stack, new_contents);
+
 						// evaluate the path argument
 						Element *path = evaluate(statement->content[3], ast_root, call_stack, scopes_stack, heap);
 						if (path->type != ELEMENT_STRING) {
@@ -1792,6 +1794,8 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 
 						// attempt to write the new contents to the file and update the result number's value accordingly
 						result->value_long = write_file(path_buffer, new_contents->value) ? 1 : 0;
+
+						*call_stack = Stack_pop(*call_stack);
 
 						// update the variable to reflect the writing operation's verdict by setting it to a new Number Element representing said verdict
 						set_variable(key, make(ELEMENT_NUMBER, result, heap), scopes, false);
