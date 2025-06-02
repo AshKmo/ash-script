@@ -2399,7 +2399,7 @@ int main(int argc, char *argv[]) {
 
 	// make sure that the user has supplied a script file to execute
 	if (argc < 3) {
-		whoops("please use one of the sub-commands 'run' or 'eval'.");
+		whoops("please use one of the sub-commands 'run' or 'eval' with an argument.");
 	}
 
 	if (argc > 3) {
