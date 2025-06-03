@@ -1393,7 +1393,7 @@ void nuke(Element *element) {
 }
 
 // function to clean out any unreferenced garbage that has been building up on the heap tracker
-void garbage_collect(Element *result, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
+void garbage_collect(Element *result, Element *ast_root, Stack **keep_stack, Stack **scopes_stack, Stack **heap) {
 	if (result != NULL) {
 		// mark any single result value as non-garbage
 		garbage_check(result);
@@ -1411,10 +1411,10 @@ void garbage_collect(Element *result, Element *ast_root, Stack **call_stack, Sta
 		}
 	}
 
-	if (call_stack != NULL) {
-		// mark all the items in the call stack as non-garbage
-		for (size_t i = 0; i < (*call_stack)->length; i++) {
-			garbage_check((*call_stack)->content[i]);
+	if (keep_stack != NULL) {
+		// mark all the items in the keep stack as non-garbage
+		for (size_t i = 0; i < (*keep_stack)->length; i++) {
+			garbage_check((*keep_stack)->content[i]);
 		}
 	}
 
@@ -1495,7 +1495,7 @@ Element *get_variable(Element *key, Element *scopes) {
 Element *evaluate(Element*, Element*, Stack**, Stack**, Stack**);
 
 // function to perform an operation on two elements after they have been juxtaposed
-Element *juxtapose(Element *element_a, Element *element_b, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
+Element *juxtapose(Element *element_a, Element *element_b, Element *ast_root, Stack **keep_stack, Stack **scopes_stack, Stack **heap) {
 	switch (element_a->type) {
 		case ELEMENT_SCOPE:
 			// application of a Scope to any value finds the value associated with the key described by the value to which the Scope is applied
@@ -1534,17 +1534,17 @@ Element *juxtapose(Element *element_a, Element *element_b, Element *ast_root, St
 				// add the new set of scopes to the Scope collection stack
 				*scopes_stack = Stack_push(*scopes_stack, scopes_copy);
 
-				// add the closure to the call stack so that it isn't garbage collected mid-call
-				*call_stack = Stack_push(*call_stack, element_a);
+				// add the closure to the keep stack so that it isn't garbage collected mid-call
+				*keep_stack = Stack_push(*keep_stack, element_a);
 
 				// evaluate the Closure expression with the new Scope collection
-				Element *result = evaluate(closure->expression, ast_root, call_stack, scopes_stack, heap);
+				Element *result = evaluate(closure->expression, ast_root, keep_stack, scopes_stack, heap);
 
 				// remove the new Scope collection from the Scope collection stack so the previous Scope collection is restored
 				*scopes_stack = Stack_pop(*scopes_stack);
 
-				// the call has ended so it's safe to remove the Closure from the call stack
-				*call_stack = Stack_pop(*call_stack);
+				// the call has ended so it's safe to remove the Closure from the keep stack
+				*keep_stack = Stack_pop(*keep_stack);
 
 				return result;
 			};
@@ -1590,7 +1590,7 @@ Element *juxtapose(Element *element_a, Element *element_b, Element *ast_root, St
 }
 
 // function to evaluate a branch of the abstract syntax tree
-Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack **scopes_stack, Stack **heap) {
+Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack **scopes_stack, Stack **heap) {
 	// get the most recently-added Scope collection from the stack of Scope collections
 	Element *scopes = (*scopes_stack)->content[(*scopes_stack)->length - 1];
 
@@ -1622,7 +1622,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					if (!handled && String_is(command->value, "do") && (handled = true)) {
 						// iterate through each argument and evaluate it
 						for (size_t i = 1; i < statement->length; i++) {
-							evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap);
+							evaluate(statement->content[i], ast_root, keep_stack, scopes_stack, heap);
 						}
 					}
 
@@ -1633,7 +1633,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						}
 
 						// evaluate the single expression to determine the result
-						Element *result = evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap);
+						Element *result = evaluate(statement->content[1], ast_root, keep_stack, scopes_stack, heap);
 
 						// remove the current Sequence's Scope object from the Scope stack
 						scopes->value = Stack_pop(scopes->value);
@@ -1645,21 +1645,21 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					// the contents of String elements are printed rather than the elements themselves
 					if (!handled && String_is(command->value, "print") && (handled = true)) {
 						for (size_t i = 1; i < statement->length; i++) {
-							print_value(evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap), 0, false);
+							print_value(evaluate(statement->content[i], ast_root, keep_stack, scopes_stack, heap), 0, false);
 						}
 					}
 
 					// the 'show' command evaluates all its arguments and prints them to the console from left to right
 					if (!handled && String_is(command->value, "show") && (handled = true)) {
 						for (size_t i = 1; i < statement->length; i++) {
-							print_value(evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap), 0, true);
+							print_value(evaluate(statement->content[i], ast_root, keep_stack, scopes_stack, heap), 0, true);
 						}
 					}
 
 					// the 'whoops' command works like the 'print' command but also crashes the program and prints an error string
 					if (!handled && String_is(command->value, "whoops") && (handled = true)) {
 						for (size_t i = 1; i < statement->length; i++) {
-							print_value(evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap), 0, false);
+							print_value(evaluate(statement->content[i], ast_root, keep_stack, scopes_stack, heap), 0, false);
 						}
 						whoops("user-defined error");
 					}
@@ -1724,7 +1724,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						Element *key = statement->content[1];
 
 						// evaluate the path argument
-						Element *path = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+						Element *path = evaluate(statement->content[2], ast_root, keep_stack, scopes_stack, heap);
 						if (path->type != ELEMENT_STRING) {
 							whoops("'readfile' command requires the second argument to be a filepath string");
 						}
@@ -1765,15 +1765,15 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						Element *key = statement->content[1];
 
 						// evaluate the new contents for the file
-						Element *new_contents = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+						Element *new_contents = evaluate(statement->content[2], ast_root, keep_stack, scopes_stack, heap);
 						if (new_contents->type != ELEMENT_STRING) {
 							whoops("'writefile' command requires the first argument to be a string");
 						}
 
-						*call_stack = Stack_push(*call_stack, new_contents);
+						*keep_stack = Stack_push(*keep_stack, new_contents);
 
 						// evaluate the path argument
-						Element *path = evaluate(statement->content[3], ast_root, call_stack, scopes_stack, heap);
+						Element *path = evaluate(statement->content[3], ast_root, keep_stack, scopes_stack, heap);
 						if (path->type != ELEMENT_STRING) {
 							whoops("'writefile' command requires the second argument to be a filepath string");
 						}
@@ -1795,7 +1795,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						// attempt to write the new contents to the file and update the result number's value accordingly
 						result->value_long = write_file(path_buffer, new_contents->value) ? 1 : 0;
 
-						*call_stack = Stack_pop(*call_stack);
+						*keep_stack = Stack_pop(*keep_stack);
 
 						// update the variable to reflect the writing operation's verdict by setting it to a new Number Element representing said verdict
 						set_variable(key, make(ELEMENT_NUMBER, result, heap), scopes, false);
@@ -1812,12 +1812,12 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						for (size_t i = 1; i < statement->length && !result; i += 2) {
 							if (i + 1 == statement->length) {
 								// if this is the last statement, execute it as the last action
-								evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap);
-							} else if (value_is_truthy(evaluate(statement->content[i], ast_root, call_stack, scopes_stack, heap))) {
+								evaluate(statement->content[i], ast_root, keep_stack, scopes_stack, heap);
+							} else if (value_is_truthy(evaluate(statement->content[i], ast_root, keep_stack, scopes_stack, heap))) {
 								// if there is a condition and it evaluates to a truthy value, evaluate it and cease further evaluations
 
 								result = true;
-								evaluate(statement->content[i + 1], ast_root, call_stack, scopes_stack, heap);
+								evaluate(statement->content[i + 1], ast_root, keep_stack, scopes_stack, heap);
 							}
 						}
 					}
@@ -1829,12 +1829,12 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						}
 
 						// evaluate the condition and check if it's a truthy value before iterating
-						while (value_is_truthy(evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap))) {
+						while (value_is_truthy(evaluate(statement->content[1], ast_root, keep_stack, scopes_stack, heap))) {
 							// evaluate the action
-							evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+							evaluate(statement->content[2], ast_root, keep_stack, scopes_stack, heap);
 
 							// perform early garbage collection to avoid memory leaks within long loops
-							garbage_collect(NULL, ast_root, call_stack, scopes_stack, heap);
+							garbage_collect(NULL, ast_root, keep_stack, scopes_stack, heap);
 						}
 					}
 
@@ -1847,7 +1847,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						Element *key = statement->content[1];
 
 						// evaluate the second argument to find the value to which the variable should be assigned
-						Element *value = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+						Element *value = evaluate(statement->content[2], ast_root, keep_stack, scopes_stack, heap);
 
 						// update the relevant scope with the new mapping
 						set_variable(key, value, scopes, true);
@@ -1862,7 +1862,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						Element *key = statement->content[1];
 
 						// evaluate the second argument to find the value to which the variable should be assigned
-						Element *value = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+						Element *value = evaluate(statement->content[2], ast_root, keep_stack, scopes_stack, heap);
 
 						// update the relevant scope with the new mapping
 						set_variable(key, value, scopes, false);
@@ -1875,24 +1875,24 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						}
 
 						// evaluate the first argument to find the subject
-						Element *subject = evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap);
+						Element *subject = evaluate(statement->content[1], ast_root, keep_stack, scopes_stack, heap);
 
 						if (subject->type != ELEMENT_SCOPE) {
 							whoops("'mut' statement requires a scope object as the first argument");
 						}
 
 						// evaluate the second argument to find the key
-						Element *key = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+						Element *key = evaluate(statement->content[2], ast_root, keep_stack, scopes_stack, heap);
 
-						*call_stack = Stack_push(*call_stack, key);
+						*keep_stack = Stack_push(*keep_stack, key);
 
 						// evaluate the third argument to find the value
-						Element *value = evaluate(statement->content[3], ast_root, call_stack, scopes_stack, heap);
+						Element *value = evaluate(statement->content[3], ast_root, keep_stack, scopes_stack, heap);
 
 						// update the Scope with the new mapping
 						subject->value = set_scope_mapping(subject->value, key, value);
 
-						*call_stack = Stack_pop(*call_stack);
+						*keep_stack = Stack_pop(*keep_stack);
 					}
 
 					// the 'unmap' command removes a mapping between a key and a value in a Scope object
@@ -1902,13 +1902,13 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						}
 
 						// evaluate the first argument to find the subject
-						Element *subject = evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap);
+						Element *subject = evaluate(statement->content[1], ast_root, keep_stack, scopes_stack, heap);
 						if (subject->type != ELEMENT_SCOPE) {
 							whoops("'unmap' statement requires a scope object as the first argument");
 						}
 
 						// evaluate the second argument to find the key
-						Element *key = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+						Element *key = evaluate(statement->content[2], ast_root, keep_stack, scopes_stack, heap);
 
 						// delete the appropriate mapping from the Scope
 						subject->value = delete_scope_mapping(subject->value, key);
@@ -1921,7 +1921,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						}
 
 						// evaluate the first argument to find the subject
-						Element *subject = evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap);
+						Element *subject = evaluate(statement->content[1], ast_root, keep_stack, scopes_stack, heap);
 						if (subject->type != ELEMENT_SCOPE) {
 							whoops("'edit' statement requires a scope object as the first argument");
 						}
@@ -1929,7 +1929,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						Element *property_name = statement->content[2];
 
 						// evaluate the third argument to find the value
-						Element *value = evaluate(statement->content[3], ast_root, call_stack, scopes_stack, heap);
+						Element *value = evaluate(statement->content[3], ast_root, keep_stack, scopes_stack, heap);
 
 						// update the Scope with the new mapping
 						subject->value = set_scope_mapping(subject->value, property_name, value);
@@ -1942,7 +1942,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						}
 
 						// evaluate the first argument to find the subject
-						Element *subject = evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap);
+						Element *subject = evaluate(statement->content[1], ast_root, keep_stack, scopes_stack, heap);
 						if (subject->type != ELEMENT_SCOPE) {
 							whoops("'delete' statement requires a scope object as the first argument");
 						}
@@ -1961,15 +1961,15 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						}
 
 						// evaluate the first operand and reject it if it is not a Scope
-						Element *subject = evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap);
+						Element *subject = evaluate(statement->content[1], ast_root, keep_stack, scopes_stack, heap);
 						if (subject->type != ELEMENT_SCOPE) {
 							whoops("'keys' statement only accepts a scope as the first argument");
 						}
 
-						*call_stack = Stack_push(*call_stack, subject);
+						*keep_stack = Stack_push(*keep_stack, subject);
 
 						// evaluate the second operand and reject it if it is not a Closure
-						Element *closure = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+						Element *closure = evaluate(statement->content[2], ast_root, keep_stack, scopes_stack, heap);
 						if (closure->type != ELEMENT_CLOSURE) {
 							whoops("'keys' statement only accepts a closure as its second argument");
 						}
@@ -1983,11 +1983,11 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 
 							// if the key is not a property name, apply it to the function by virtually juxtaposing the two
 							if (key->type != ELEMENT_VARIABLE) {
-								juxtapose(closure, key, ast_root, call_stack, scopes_stack, heap);
+								juxtapose(closure, key, ast_root, keep_stack, scopes_stack, heap);
 							}
 						}
 
-						*call_stack = Stack_pop(*call_stack);
+						*keep_stack = Stack_pop(*keep_stack);
 					}
 
 					// the 'values' command applies a Closure to each value in a Scope object in order of the value's addition to the Scope
@@ -1997,15 +1997,15 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						}
 
 						// evaluate the first operand and reject it if it is not a Scope
-						Element *subject = evaluate(statement->content[1], ast_root, call_stack, scopes_stack, heap);
+						Element *subject = evaluate(statement->content[1], ast_root, keep_stack, scopes_stack, heap);
 						if (subject->type != ELEMENT_SCOPE) {
 							whoops("'values' statement only accepts a scope as the first argument");
 						}
 
-						*call_stack = Stack_push(*call_stack, subject);
+						*keep_stack = Stack_push(*keep_stack, subject);
 
 						// evaluate the second operand and reject it if it is not a Closure
-						Element *closure = evaluate(statement->content[2], ast_root, call_stack, scopes_stack, heap);
+						Element *closure = evaluate(statement->content[2], ast_root, keep_stack, scopes_stack, heap);
 						if (closure->type != ELEMENT_CLOSURE) {
 							whoops("'values' statement only accepts a closure as its second argument");
 						}
@@ -2019,11 +2019,11 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 
 							// if the key is not a property name, apply it to the function by virtually juxtaposing the two
 							if (key->type != ELEMENT_VARIABLE) {
-								juxtapose(closure, key, ast_root, call_stack, scopes_stack, heap);
+								juxtapose(closure, key, ast_root, keep_stack, scopes_stack, heap);
 							}
 						}
 
-						*call_stack = Stack_pop(*call_stack);
+						*keep_stack = Stack_pop(*keep_stack);
 					}
 
 					// if no matching command was found for this statement, it must be an invalid command
@@ -2036,7 +2036,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					}
 
 					// collect any garbage that may have accumulated over the course of the execution of this statement
-					garbage_collect(NULL, ast_root, call_stack, scopes_stack, heap);
+					garbage_collect(NULL, ast_root, keep_stack, scopes_stack, heap);
 				}
 
 				// remove the current Sequence's Scope object from the Scope stack
@@ -2061,12 +2061,12 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						// this operation handles the case where two values are juxtaposed
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_push(*call_stack, element_a);
-							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_pop(*call_stack);
+							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_push(*keep_stack, element_a);
+							Element *element_b = evaluate(operation->element_b, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_pop(*keep_stack);
 
-							return juxtapose(element_a, element_b, ast_root, call_stack, scopes_stack, heap);
+							return juxtapose(element_a, element_b, ast_root, keep_stack, scopes_stack, heap);
 						};
 						break;
 
@@ -2074,10 +2074,10 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					case OPERATION_INEQUALITY:
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_push(*call_stack, element_a);
-							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_pop(*call_stack);
+							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_push(*keep_stack, element_a);
+							Element *element_b = evaluate(operation->element_b, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_pop(*keep_stack);
 
 							// create a new number for the result
 							Number *number = Number_new();
@@ -2114,10 +2114,10 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 							}
 
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_push(*call_stack, element_a);
-							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_pop(*call_stack);
+							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_push(*keep_stack, element_a);
+							Element *element_b = evaluate(operation->element_b, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_pop(*keep_stack);
 
 							// throw an error if either one is not a number
 							if (element_a->type != ELEMENT_NUMBER || element_b->type != ELEMENT_NUMBER) {
@@ -2137,10 +2137,10 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						// handle all the bitwise operations
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_push(*call_stack, element_a);
-							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_pop(*call_stack);
+							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_push(*keep_stack, element_a);
+							Element *element_b = evaluate(operation->element_b, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_pop(*keep_stack);
 
 							if (element_a->type != ELEMENT_NUMBER || element_b->type != ELEMENT_NUMBER) {
 								whoops("bitwise operations may only be applied to integers");
@@ -2187,10 +2187,10 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						// >/ (OPERATION_SUBG) keeps only everything after the first n characters of the string
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_push(*call_stack, element_a);
-							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_pop(*call_stack);
+							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_push(*keep_stack, element_a);
+							Element *element_b = evaluate(operation->element_b, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_pop(*keep_stack);
 
 							// make sure that the types line up for this operation
 							if (element_a->type != ELEMENT_STRING || element_b->type != ELEMENT_NUMBER) {
@@ -2261,7 +2261,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					case OPERATION_ACCESS:
 						// this operation does the same thing as applying a value to a Scope, except it applies variable names, similarly to how object properties are accessed in other languages
 						{
-							Element *subject = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
+							Element *subject = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
 							if (subject->type != ELEMENT_SCOPE) {
 								whoops("property access operation can only have a scope as a subject");
 							}
@@ -2284,15 +2284,15 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 					case OPERATION_OR:
 						{
 							// evaluate the first operand
-							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_push(*call_stack, element_a);
+							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_push(*keep_stack, element_a);
 
 							// return either the first or second operand evaluations based on whether or not the operation is && or || and whether or not the first operand evaluation is truthy
 							Element *result =
 								operation->type == OPERATION_AND != value_is_truthy(element_a) ? element_a :
-								evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
+								evaluate(operation->element_b, ast_root, keep_stack, scopes_stack, heap);
 
-							*call_stack = Stack_pop(*call_stack);
+							*keep_stack = Stack_pop(*keep_stack);
 
 							return result;
 						};
@@ -2303,10 +2303,10 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 							Number *result = Number_new();
 
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_push(*call_stack, element_a);
-							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_pop(*call_stack);
+							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_push(*keep_stack, element_a);
+							Element *element_b = evaluate(operation->element_b, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_pop(*keep_stack);
 
 							// return a truthy value only if the truthiness of the two evaluations differ
 							result->value_long = value_is_truthy(element_a) != value_is_truthy(element_b) ? 1 : 0;
@@ -2320,10 +2320,10 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **call_stack, Stack 
 						// this operation checks if two values are of the same type
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
-							Element *element_a = evaluate(operation->element_a, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_push(*call_stack, element_a);
-							Element *element_b = evaluate(operation->element_b, ast_root, call_stack, scopes_stack, heap);
-							*call_stack = Stack_pop(*call_stack);
+							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_push(*keep_stack, element_a);
+							Element *element_b = evaluate(operation->element_b, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_pop(*keep_stack);
 
 							// create a new Number to store the result
 							Number *result = Number_new();
@@ -2367,7 +2367,7 @@ void execute(String *script) {
 	free(tokens);
 
 	// make a stack to keep track of the previous functions so they don't get garbage collected
-	Stack *call_stack = Stack_new();
+	Stack *keep_stack = Stack_new();
 
 	// make a stack to keep track of the previous sets of scopes so they don't get garbage collected
 	Stack *scopes_stack = Stack_new();
@@ -2376,10 +2376,10 @@ void execute(String *script) {
 	scopes_stack = Stack_push(scopes_stack, make(ELEMENT_SCOPE_COLLECTION, Stack_new(), &heap));
 
 	// evaluate the syntax tree
-	evaluate(ast_root, ast_root, &call_stack, &scopes_stack, &heap);
+	evaluate(ast_root, ast_root, &keep_stack, &scopes_stack, &heap);
 
 	// we no longer need these stacks after the evaluation so they can be safely freed
-	free(call_stack);
+	free(keep_stack);
 	free(scopes_stack);
 
 	// clean up any leftover garbage indiscriminately
