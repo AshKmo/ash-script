@@ -2366,10 +2366,10 @@ void execute(String *script) {
 	// we no longer have any use for the token list, so it should be freed
 	free(tokens);
 
-	// make a stack to keep track of the previous functions so they don't get garbage collected
+	// make a stack to temporarily keep track of certain objects so they don't get garbage collected prematurely
 	Stack *keep_stack = Stack_new();
 
-	// make a stack to keep track of the previous sets of scopes so they don't get garbage collected
+	// make a stack to keep track of the previous sets of scopes so they don't get garbage collected prematurely
 	Stack *scopes_stack = Stack_new();
 
 	// make the initial collection of scopes
