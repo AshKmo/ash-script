@@ -1439,6 +1439,10 @@ void garbage_collect(Element *result, Element *ast_root, Stack **keep_stack, Sta
 // function to set a variable in any of the scopes available in the current evaluation
 // the local_only parameter forces the variable to be set only in the local scope
 void set_variable(Element *key, Element *value, Element *scopes, bool local_only) {
+	if (key->type == ELEMENT_NULL) {
+		return;
+	}
+
 	Stack *scope_collection = scopes->value;
 
 	Element *scope;
