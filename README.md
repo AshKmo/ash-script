@@ -102,14 +102,17 @@ Identical to `print`, but also causes the program to immediately cease execution
 #### `rand`
 Accepts a single argument and creates a new variable, named by said argument, containing a random floating-point number with a value n such that 0 <= n < 1.
 
+#### `length`
+Accepts two arguments and creates a new variable, named by the first argument, set to an integer representing the length of the string in bytes.
+
 #### `input`
-Accepts a single argument and creates a new variable, named by said argument, to a string containing the user's input, which it receives from the console.
+Accepts a single argument and creates a new variable, named by said argument, set to a string containing the user's input, which it receives from the console.
 
 #### `readfile`
-Accepts two arguments and creates a new variable, named by the first argument, to either a null value or the contents of a file, the location of which is described by the evaluation of the second argument, which must be a string.
+Accepts two arguments and creates a new variable, named by the first argument, set to either a null value or the contents of a file, the location of which is described by the evaluation of the second argument, which must be a string.
 
 #### `writefile`
-Accepts three arguments and creates a new variable, named by the first argument, to an integer number 1 if the file at the location described by the evaluation of the second argument (which must be a string) has been successfully updated or created with the contents specified by the evaluation of the third argument. Otherwise, the variable is set to an integer number 0.
+Accepts three arguments and creates a new variable, named by the first argument, set to an integer number 1 if the file at the location described by the evaluation of the second argument (which must be a string) has been successfully updated or created with the contents specified by the evaluation of the third argument. Otherwise, the variable is set to an integer number 0.
 
 #### `if`
 Accepts any number of arguments, and iterates through each of them two-by-two. For each pair, the first argument in the pair is evaluated and, if the result is a truthy value, the second argument is evaluated and execution of the statement then ceases. A trailing argument, if specified, is evaluated if this never happens. For example:
@@ -190,7 +193,13 @@ Not as self-explanatory, but still very consistent with how C implements them.
 Works very similarly to the JavaScript logical operations but with an additional XOR operation (`^^`) that returns an integer number 1 if the truthiness of the two values differ, and 0 otherwise.
 
 #### Substring operations (`</`, `>/`)
-These operations require that `x` be a string and `y` be an integer number. `x </ y` evaluates to a string containing only the first `y` characters of the string `x`, whilst `x >/ y` evaluates to a string containing the entirety of the string `x` except the first `y` characters.
+These operations require that `x` be a String and `y` be an integer. `x </ y` evaluates to a String containing only the first `y` characters of the String `x`, whilst `x >/ y` evaluates to a String containing the entirety of the String `x` except the first `y` characters.
+
+#### Character value (`x @ y`)
+Evaluates to an integer representing the value of the byte in the String `x` at index `y`.
+
+#### Character append (`x @@ y`)
+Evaluates to a String containing the contents of the String `x` with the character represented by the integer `y` appended to it.
 
 #### Closure (`x => y`)
 Evaluates to a new closure that, when applied to a value, will be able to access said value by the variable name `x` and will evaluate to the evaluation of `y`, which will be evaluated when the closure is applied to a value.

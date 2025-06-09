@@ -20,7 +20,7 @@
 
 // function to spit out an error and kill the program if/when necessary
 void whoops(char *reason) {
-	fputs("ERROR: ", stderr);
+	fputs("\nERROR: ", stderr);
 	fputs(reason, stderr);
 	fputc('\n', stderr);
 	exit(1);
@@ -138,6 +138,8 @@ typedef enum {
 	OPERATION_SHIFT_RIGHT,
 	OPERATION_SUBL,
 	OPERATION_SUBG,
+	OPERATION_CHAR_AT,
+	OPERATION_CHAR_APPEND,
 	OPERATION_LT,
 	OPERATION_GT,
 	OPERATION_LTE,
@@ -155,7 +157,7 @@ typedef enum {
 } OperationType;
 
 // array storing the precedence value of each operator
-const int OPERATOR_PRECEDENCE[] = {0, 0, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 8, 9, 10, 11, 12, 13, 14};
+const int OPERATOR_PRECEDENCE[] = {0, 0, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 9, 10, 11, 12, 13, 14, 15};
 
 // type used to represent an operation that is to be performed on two values
 typedef struct {
@@ -330,7 +332,7 @@ bool compare_elements(Element *element_a, Element *element_b) {
 
 	switch (element_a->type) {
 		case ELEMENT_NULL:
-			// there is only one value that null Elements can be, and we already know that the type is the same, so these elements must be equal
+			// there is only one value that Null Elements can be, and we already know that the type is the same, so these elements must be equal
 			return true;
 
 		case ELEMENT_VARIABLE:
@@ -869,6 +871,7 @@ Stack *tokenise(String *script, Stack **heap) {
 				case '|':
 				case '^':
 				case '!':
+				case '@':
 					// these special characters are all part of operators
 					new_type = ELEMENT_OPERATION;
 					break;
@@ -999,6 +1002,10 @@ Stack *tokenise(String *script, Stack **heap) {
 							operation->type = OPERATION_SUBG;
 						} else if (String_is(current_value, "</")) {
 							operation->type = OPERATION_SUBL;
+						} else if (String_is(current_value, "@")) {
+							operation->type = OPERATION_CHAR_AT;
+						} else if (String_is(current_value, "@@")) {
+							operation->type = OPERATION_CHAR_APPEND;
 						} else if (String_is(current_value, ".")) {
 							operation->type = OPERATION_ACCESS;
 						} else if (String_is(current_value, "=>")) {
@@ -1489,7 +1496,6 @@ Element *get_variable(Element *key, Element *scopes) {
 	// if no value was found, print the variable name and an error message
 	putchar('\n');
 	print_value(key, 0, true);
-	putchar('\n');
 	whoops("variable not found");
 
 	return NULL;
@@ -1586,7 +1592,7 @@ Element *juxtapose(Element *element_a, Element *element_b, Element *ast_root, St
 			return element_a;
 
 		default:
-			printf("%d\n", element_a->type);
+			printf("%d", element_a->type);
 			whoops("cannot apply this type to any value");
 	}
 
@@ -1622,7 +1628,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 					// boolean to indicate whether or not a matching instruction was found
 					bool handled = false;
 
-					// the 'do' command just evaluates all its arguments in sequence from left to right
 					if (!handled && String_is(command->value, "do") && (handled = true)) {
 						// iterate through each argument and evaluate it
 						for (size_t i = 1; i < statement->length; i++) {
@@ -1630,7 +1635,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						}
 					}
 
-					// the 'return' command immediately exits the current block and returns the result of an expression
 					if (!handled && String_is(command->value, "return") && (handled = true)) {
 						if (statement->length != 2) {
 							whoops("'return' statement requires exactly 1 argument");
@@ -1645,30 +1649,30 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						return result;
 					}
 
-					// the 'print' command evaluates all its arguments and prints them to the console from left to right
-					// the contents of String elements are printed rather than the elements themselves
 					if (!handled && String_is(command->value, "print") && (handled = true)) {
 						for (size_t i = 1; i < statement->length; i++) {
+							// print the evaluated values, and print only the contents of strings
 							print_value(evaluate(statement->content[i], ast_root, keep_stack, scopes_stack, heap), 0, false);
 						}
 					}
 
-					// the 'show' command evaluates all its arguments and prints them to the console from left to right
 					if (!handled && String_is(command->value, "show") && (handled = true)) {
 						for (size_t i = 1; i < statement->length; i++) {
+							// print the evaluated values, and format the strings as code
 							print_value(evaluate(statement->content[i], ast_root, keep_stack, scopes_stack, heap), 0, true);
 						}
 					}
 
-					// the 'whoops' command works like the 'print' command but also crashes the program and prints an error string
 					if (!handled && String_is(command->value, "whoops") && (handled = true)) {
 						for (size_t i = 1; i < statement->length; i++) {
+							// print the evaluated values, and print only the contents of strings
 							print_value(evaluate(statement->content[i], ast_root, keep_stack, scopes_stack, heap), 0, false);
 						}
+
+						// throw an error and exit the code
 						whoops("user-defined error");
 					}
 
-					// the 'rand' command generates a random number n such that 0 <= n < 1 and stores it in a variable
 					if (!handled && String_is(command->value, "rand") && (handled = true)) {
 						if (statement->length != 2) {
 							whoops("'rand' statement requires exactly 1 argument");
@@ -1690,7 +1694,27 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						set_variable(key, make(ELEMENT_NUMBER, result, heap), scopes, true);
 					}
 
-					// the 'input' command waits for input from the user and then stores it in a variable
+					if (!handled && String_is(command->value, "length") && (handled = true)) {
+						if (statement->length != 3) {
+							whoops("'length' statement requires exactly 2 arguments");
+						}
+
+						Element *key = statement->content[1];
+
+						Element *subject = statement->content[2];
+						if (subject->type != ELEMENT_STRING) {
+							whoops("'length' command requires the second argument to be a string");
+						}
+
+						String *subject_string = subject->value;
+
+						Number *result = Number_new();
+						result->value_long = subject_string->length;
+
+						// make a new Number Element for the result and assign it to the variable
+						set_variable(key, make(ELEMENT_NUMBER, result, heap), scopes, true);
+					}
+
 					if (!handled && String_is(command->value, "input") && (handled = true)) {
 						if (statement->length != 2) {
 							whoops("'input' statement requires exactly 1 argument");
@@ -1715,11 +1739,10 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						// we no longer need the temporary buffer so it can be safely free'd
 						free(buffer);
 
-						// make a new String Element for the result and set it to the variable
+						// make a new String Element for the result and assign it to the variable
 						set_variable(key, make(ELEMENT_STRING, result, heap), scopes, true);
 					}
 
-					// the 'readfile' command reads the contents of a file into a variable
 					if (!handled && String_is(command->value, "readfile") && (handled = true)) {
 						if (statement->length != 3) {
 							whoops("'readfile' command requires exactly 2 arguments");
@@ -1730,7 +1753,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						// evaluate the path argument
 						Element *path = evaluate(statement->content[2], ast_root, keep_stack, scopes_stack, heap);
 						if (path->type != ELEMENT_STRING) {
-							whoops("'readfile' command requires the second argument to be a filepath string");
+							whoops("'readfile' command requires the second argument to be a valid filepath string");
 						}
 
 						String *path_string = path->value;
@@ -1750,7 +1773,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						Element *result;
 
 						// if the file contents can be read, make a String element and store them in it
-						// otherwise, the result will be a null element
+						// otherwise, the result will be a Null Element
 						if (result_string == NULL) {
 							result = make(ELEMENT_NULL, NULL, heap);
 						} else {
@@ -1760,7 +1783,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						set_variable(key, result, scopes, true);
 					}
 
-					// the 'writefile' command writes the contents of a String to a file and stores whether or not the operation succeeded in a variable
 					if (!handled && String_is(command->value, "writefile") && (handled = true)) {
 						if (statement->length != 4) {
 							whoops("'writefile' command requires exactly 3 arguments");
@@ -1812,10 +1834,11 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 
 						bool result = false;
 
-						// the 'if' statement accepts any number of conditions and actions and evaluates the first action for which the evaluation of the condition is truthy. A trailing action will be evaluated if one is present and if no other actions were evaluated
+						// iterate through each condition-action pair and perform only the first action that is associated with a condition that evaluates to a truthy value
+						// if there is a trailing value that does not belong to a pair, execute it if no condition is acceptable
 						for (size_t i = 1; i < statement->length && !result; i += 2) {
 							if (i + 1 == statement->length) {
-								// if this is the last statement, execute it as the last action
+								// if this is the last argument, evaluate it as an action, since no condition was acceptable
 								evaluate(statement->content[i], ast_root, keep_stack, scopes_stack, heap);
 							} else if (value_is_truthy(evaluate(statement->content[i], ast_root, keep_stack, scopes_stack, heap))) {
 								// if there is a condition and it evaluates to a truthy value, evaluate it and cease further evaluations
@@ -1826,7 +1849,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						}
 					}
 
-					// the 'while' statement accepts a condition and an action and will execute the action until the condition evaluates to a falsy value
 					if (!handled && String_is(command->value, "while") && (handled = true)) {
 						if (statement->length != 3) {
 							whoops("'while' statement requires exactly 2 arguments");
@@ -1842,7 +1864,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						}
 					}
 
-					// the 'let' command accepts a key and a value and makes a new variable accordingly
 					if (!handled && String_is(command->value, "let") && (handled = true)) {
 						if (statement->length != 3) {
 							whoops("'let' statement requires exactly 2 arguments");
@@ -1857,7 +1878,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						set_variable(key, value, scopes, true);
 					}
 
-					// the 'set' command accepts a key and a value and updates an existing variable accordingly
 					if (!handled && String_is(command->value, "set") && (handled = true)) {
 						if (statement->length != 3) {
 							whoops("'set' statement requires exactly 2 arguments");
@@ -1872,7 +1892,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						set_variable(key, value, scopes, false);
 					}
 
-					// the 'mut' command accepts a Scope object, a key expression and a value expression and updates the Scope object accordingly
 					if (!handled && String_is(command->value, "mut") && (handled = true)) {
 						if (statement->length != 4) {
 							whoops("'mut' statement requires exactly 3 arguments");
@@ -1899,7 +1918,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						*keep_stack = Stack_pop(*keep_stack);
 					}
 
-					// the 'unmap' command removes a mapping between a key and a value in a Scope object
 					if (!handled && String_is(command->value, "unmap") && (handled = true)) {
 						if (statement->length != 3) {
 							whoops("'unmap' statement requires exactly 2 arguments");
@@ -1918,7 +1936,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						subject->value = delete_scope_mapping(subject->value, key);
 					}
 
-					// the 'edit' command accepts a Scope object, a property name and a value and updates the Scope object accordingly
 					if (!handled && String_is(command->value, "edit") && (handled = true)) {
 						if (statement->length != 4) {
 							whoops("'edit' statement requires exactly 3 arguments");
@@ -1939,7 +1956,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						subject->value = set_scope_mapping(subject->value, property_name, value);
 					}
 
-					// the 'delete' command removes a named property from a Scope object
 					if (!handled && String_is(command->value, "delete") && (handled = true)) {
 						if (statement->length != 3) {
 							whoops("'delete' statement requires exactly 2 arguments");
@@ -1958,7 +1974,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						subject->value = delete_scope_mapping(subject->value, property_name);
 					}
 
-					// the 'keys' command applies a Closure to each key in a Scope object in order of the key's addition to the Scope
 					if (!handled && String_is(command->value, "keys") && (handled = true)) {
 						if (statement->length != 3) {
 							whoops("'keys' statement requires exactly 2 arguments");
@@ -1994,7 +2009,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						*keep_stack = Stack_pop(*keep_stack);
 					}
 
-					// the 'values' command applies a Closure to each value in a Scope object in order of the value's addition to the Scope
 					if (!handled && String_is(command->value, "values") && (handled = true)) {
 						if (statement->length != 3) {
 							whoops("'values' statement requires exactly 2 arguments");
@@ -2035,7 +2049,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						// print the invalid command, then throw an error about it
 						putchar('\n');
 						String_print(command->value);
-						putchar('\n');
 						whoops("command not recognised");
 					}
 
@@ -2060,9 +2073,12 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 			{
 				Operation *operation = branch->value;
 
+				if (operation->element_a == NULL || operation->element_b == NULL) {
+					whoops("misplaced operator (maybe you need to put some brackets around one of your expressions?)");
+				}
+
 				switch (operation->type) {
 					case OPERATION_JUXTAPOSITION:
-						// this operation handles the case where two values are juxtaposed
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
 							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
@@ -2138,7 +2154,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 					case OPERATION_BWAND:
 					case OPERATION_BWOR:
 					case OPERATION_BWXOR:
-						// handle all the bitwise operations
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
 							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
@@ -2186,9 +2201,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 
 					case OPERATION_SUBL:
 					case OPERATION_SUBG:
-						// these operators are used to obtain portions of a string based on a number 'n'
-						// </ (OPERATION_SUBL) keeps only the first n characters of the string
-						// >/ (OPERATION_SUBG) keeps only everything after the first n characters of the string
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
 							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
@@ -2243,8 +2255,74 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						};
 						break;
 
+					case OPERATION_CHAR_AT:
+						{
+							Element *subject = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_push(*keep_stack, subject);
+							Element *index = evaluate(operation->element_b, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_pop(*keep_stack);
+
+							// both Elements must be of an acceptable type
+							if (subject->type != ELEMENT_STRING || index->type != ELEMENT_NUMBER) {
+								whoops("character value operator must be applied to a string and an integer, in that order");
+							}
+
+							Number *index_number = index->value;
+
+							// ensure that the Number supplied is, in fact, an integer
+							if (index_number->is_double) {
+								whoops("character value operator only accepts integer values in the second operand");
+							}
+
+							String *subject_string = subject->value;
+
+							// if the index is out of range, return a Null Element
+							if (index_number->value_long < 0 || index_number->value_long > subject_string->length) {
+								return make(ELEMENT_NULL, NULL, heap);
+							}
+
+							Number *result = Number_new();
+
+							// set the value of the result to the value of the byte at the index specified in the second operand
+							result->value_long = subject_string->content[index_number->value_long];
+
+							return make(ELEMENT_NUMBER, result, heap);
+						};
+						break;
+
+					case OPERATION_CHAR_APPEND:
+						{
+							Element *subject = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_push(*keep_stack, subject);
+							Element *char_code = evaluate(operation->element_b, ast_root, keep_stack, scopes_stack, heap);
+							*keep_stack = Stack_pop(*keep_stack);
+
+							// both Elements must be of an acceptable type
+							if (subject->type != ELEMENT_STRING || char_code->type != ELEMENT_NUMBER) {
+								whoops("character append operator must be applied to a string and an integer, in that order");
+							}
+
+							Number *char_code_number = char_code->value;
+
+							// ensure that the Number supplied is, in fact, an integer
+							if (char_code_number->is_double) {
+								whoops("character append operator only accepts integer values in the second operand");
+							}
+
+							String *subject_string = subject->value;
+
+							// copy the contents of the old string into the new string, which will also have an additional byte of length
+							String *result = String_new(subject_string->length + 1);
+							memcpy(result->content, subject_string->content, subject_string->length);
+
+							// set the value of the additional byte to the character value specified by the value of the second operand
+							result->content[subject_string->length] = char_code_number->value_long;
+
+							return make(ELEMENT_STRING, result, heap);
+						};
+						break;
+
 					case OPERATION_CLOSURE:
-						// this operation creates a new Closure Element that can be called by applying it to a value
 						{
 							Stack *current_scopes = scopes->value;
 
@@ -2263,7 +2341,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						break;
 
 					case OPERATION_ACCESS:
-						// this operation does the same thing as applying a value to a Scope, except it applies variable names, similarly to how object properties are accessed in other languages
 						{
 							Element *subject = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
 							if (subject->type != ELEMENT_SCOPE) {
@@ -2276,7 +2353,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 								// if no result is found, print the property name and an error message
 								putchar('\n');
 								print_value(operation->element_b, 0, true);
-								putchar('\n');
 								whoops("no such property in this scope");
 							}
 
@@ -2321,7 +2397,6 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						break;
 
 					case OPERATION_LIKENESS:
-						// this operation checks if two values are of the same type
 						{
 							// evaluate each operand to obtain the actual values we need to operate on
 							Element *element_a = evaluate(operation->element_a, ast_root, keep_stack, scopes_stack, heap);
