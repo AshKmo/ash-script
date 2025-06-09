@@ -2,47 +2,21 @@
 [ since Conway's Game of Life is Turing-complete, the existence of this functioning program proves that ash-script as a programming language is also Turing-complete ]
 [ however, since the interpreter for this language is very unoptimised, the simulation is also very slow ]
 
+[ Scope that contains the game settings ]
 let settings {
+	[ this setting determines the average proportion of alive to dead cells in an initial state ]
+	[ it should be set to a value between 0 and 1 (inclusive) ]
+	let aliveProportion 0.5;
+
 	let world {
 		let width 60;
 		let height 25;
-	};
-
-	[ this property defines the initial state of the game, which the simulation will mutate as generations pass ]
-	[ any character that is not a space is counted as a live cell, with all other cells being counted as dead ]
-	[ the default setting for this property is a known 'methuselah' called "acorn" which was found by Charles Corderman ]
-	let initialState {
-		let 0	"                                                            ";
-		let 1	"                                                            ";
-		let 2	"                                                            ";
-		let 3	"                                                            ";
-		let 4	"                                                            ";
-		let 5	"                                                            ";
-		let 6	"                                                            ";
-		let 7	"                                                            ";
-		let 8	"                                                            ";
-		let 9	"                                                            ";
-		let 10	"                                                            ";
-		let 11 	"                                                            ";
-		let 12	"                                                            ";
-		let 13	"                                                            ";
-		let 14	"                                                            ";
-		let 15	"                                                            ";
-		let 16	"                                                            ";
-		let 17	"                                  @                         ";
-		let 18	"                                    @                       ";
-		let 19	"                                 @@  @@@                    ";
-		let 20	"                                                            ";
-		let 21	"                                                            ";
-		let 22	"                                                            ";
-		let 23	"                                                            ";
-		let 24	"                                                            ";
 	};
 };
 
 let world {};
 
-[ iterate through each cell in the world and set its state based on the settings.initialState property ]
+[ iterate through each cell in the world and set its initial state randomly ]
 do {
 	let y 0;
 
@@ -52,8 +26,8 @@ do {
 		let x 0;
 
 		while (x < settings.world.width) {
-			[ the string slicing operator is used here to select the character, from the string at row y, associated with the current x value ]
-			mut (world y) x (settings.initialState y </ (x + 1) >/ x != " ");
+			[ set each cell in the world to a random dead/alive state based on the proportions given in the settings ]
+			mut (world y) x ({rand r;}.r < settings.aliveProportion);
 
 			set x (x + 1);
 		};
