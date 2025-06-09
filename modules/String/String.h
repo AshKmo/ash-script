@@ -3,7 +3,7 @@
 
 typedef struct {
 	size_t length;
-	char content[];
+	unsigned char content[];
 } String;
 
 String *String_new(size_t length);

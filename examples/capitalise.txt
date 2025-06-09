@@ -1,8 +1,10 @@
 [ this script will ask for a text file and will transform said file into a capitalised version; that is, each lowercase English alphabet character in the file will be swapped for its uppercase character ]
 
+[ prompt the user for a filepath ]
 print "Which file do you want to capitalise? ";
 input file;
 
+[ attempt to read the file, and throw an error if it cannot be read ]
 readfile contents file;
 if (contents == ()) {
 	whoops "file cannot be read";
@@ -10,8 +12,10 @@ if (contents == ()) {
 
 let result "";
 
+[ iterate through each character in the file's contents ]
 let i 0;
 while (i < {length l contents;}.l) {
+	[ obtain the character code of the current character ]
 	let c (contents @ i);
 
 	if (c >= 97 && c <= 122) {
