@@ -1,9 +1,12 @@
 [ set the initial count for the number of times " silly" should be printed ]
 let count 5;
 
-[ ask the user for their name ]
-print "What is your name? ";
-input name;
+[ ask the user for their name repeatedly until an answer is given ]
+let name "";
+while ({length l name;}.l == 0) {
+	print "What is your name? ";
+	set name ({input name;}.name);
+};
 
 [ congratulate me on my awesome name, but insult everyone else ]
 if (name == "Ash") {

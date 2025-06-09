@@ -1701,7 +1701,8 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 
 						Element *key = statement->content[1];
 
-						Element *subject = statement->content[2];
+						// evaluate the subject argument
+						Element *subject = evaluate(statement->content[2], ast_root, keep_stack, scopes_stack, heap);
 						if (subject->type != ELEMENT_STRING) {
 							whoops("'length' command requires the second argument to be a string");
 						}
