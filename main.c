@@ -1716,7 +1716,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						free(buffer);
 
 						// make a new String Element for the result and set it to the variable
-						set_variable(key, make(ELEMENT_STRING, result, heap), scopes, false);
+						set_variable(key, make(ELEMENT_STRING, result, heap), scopes, true);
 					}
 
 					// the 'readfile' command reads the contents of a file into a variable
