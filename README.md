@@ -103,13 +103,13 @@ Identical to `print`, but also causes the program to immediately cease execution
 Accepts a single argument and creates a new variable, named by said argument, containing a random floating-point number with a value n such that 0 <= n < 1.
 
 #### `input`
-Accepts a single argument and sets the variable named by said argument to a string containing the user's input, which it receives from the console.
+Accepts a single argument and creates a new variable, named by said argument, to a string containing the user's input, which it receives from the console.
 
 #### `readfile`
-Accepts two arguments and sets the variable named by the first argument to either a null value or the contents of a file, the location of which is described by the evaluation of the second argument, which must be a string.
+Accepts two arguments and creates a new variable, named by the first argument, to either a null value or the contents of a file, the location of which is described by the evaluation of the second argument, which must be a string.
 
 #### `writefile`
-Accepts three arguments and sets the variable named by the first argument to an integer number 1 if the file at the location described by the evaluation of the second argument (which must be a string) has been successfully updated or created with the contents specified by the evaluation of the third argument. Otherwise, the variable is set to an integer number 0.
+Accepts three arguments and creates a new variable, named by the first argument, to an integer number 1 if the file at the location described by the evaluation of the second argument (which must be a string) has been successfully updated or created with the contents specified by the evaluation of the third argument. Otherwise, the variable is set to an integer number 0.
 
 #### `if`
 Accepts any number of arguments, and iterates through each of them two-by-two. For each pair, the first argument in the pair is evaluated and, if the result is a truthy value, the second argument is evaluated and execution of the statement then ceases. A trailing argument, if specified, is evaluated if this never happens. For example:
