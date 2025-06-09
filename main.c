@@ -1757,7 +1757,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 							result = make(ELEMENT_STRING, result_string, heap);
 						}
 
-						set_variable(key, result, scopes, false);
+						set_variable(key, result, scopes, true);
 					}
 
 					// the 'writefile' command writes the contents of a String to a file and stores whether or not the operation succeeded in a variable
@@ -1802,7 +1802,7 @@ Element *evaluate(Element *branch, Element *ast_root, Stack **keep_stack, Stack 
 						*keep_stack = Stack_pop(*keep_stack);
 
 						// update the variable to reflect the writing operation's verdict by setting it to a new Number Element representing said verdict
-						set_variable(key, make(ELEMENT_NUMBER, result, heap), scopes, false);
+						set_variable(key, make(ELEMENT_NUMBER, result, heap), scopes, true);
 					}
 
 					if (!handled && String_is(command->value, "if") && (handled = true)) {
