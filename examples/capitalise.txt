@@ -18,17 +18,19 @@ while (i < {length l contents;}.l) {
 	[ obtain the character code of the current character ]
 	let c (contents @ i);
 
+	[ if the character code is within the lowercase English alphabet range, decrement it by 32 so that it ends up being the corresponding uppercase character ]
 	if (c >= 97 && c <= 122) {
 		set c (c - 32);
 	};
 
+	[ append the (possibly modified) character code to the result string ]
 	set result (result @@ c);
 
 	set i (i + 1);
 };
 
+[ attempt to write the result string to the same file we just read from, and throw an error if this fails ]
 writefile worked result file;
-
 if (worked == 0) {
 	whoops "file cannot be written to";
 };
