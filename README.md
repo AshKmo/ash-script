@@ -1,11 +1,9 @@
 # ash-script
 A basic interpreter for a simple programming language called ash-script, written for educational purposes.
 
-This code, along with a proper rendering of this readme, is available on Github at [AshKmo/cos10009-custom](https://github.com/AshKmo/cos10009-custom).
+This code, along with a proper rendering of this readme, is available on Github at [AshKmo/cos10009-custom](https://github.com/AshKmo/ash-script).
 
 ## Compiling
-First of all, please keep in mind that ash-script has only been tested on a Linux laptop and on Ed Discussion. I've tried to make the code relatively portable, but otherwise there are no guarantees.
-
 Clone this repository, then make a new directory called 'build' next to this file. Ensure `make` and `gcc` are installed, then run `make` to compile the interpreter. Once compiled, a new binary called 'ash-script' will be placed in the 'build' directory.
 
 ## Running
